@@ -21,59 +21,59 @@ app = None;
 class PrivateProfile(QWebEngineProfile):
     def __init__(self, path, parent=None):
         super().__init__(parent)
-        if path != None:
-            #self.setRequestInterceptor(AdBlockInterceptor())
-            #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
-            self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
-            self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
-            self.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk);
-            self.setPersistentStoragePath(path)
+        self.path = path;
+        #self.setRequestInterceptor(AdBlockInterceptor())
+        #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
+        self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+        self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
+        self.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk);
+        self.setPersistentStoragePath(path)
 
-            settings = self.settings()
-            settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,           True); 
-            settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,            True);
-            settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled,      True);
-            settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled,      True);
-            settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,  False);
-            settings.setAttribute(QWebEngineSettings.PluginsEnabled,                True);
-            #-------------------------
-            settings.setAttribute(QWebEngineSettings.AutoLoadImages,                True);
-            settings.setAttribute(QWebEngineSettings.JavascriptEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.JavascriptCanOpenWindows,                True);
-            settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,                True);
-            settings.setAttribute(QWebEngineSettings.LinksIncludedInFocusChain,                True);
-            settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls,                True);
-            settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.SpatialNavigationEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls,                True);
-            settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.ScrollAnimatorEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.ErrorPageEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.PluginsEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.ScreenCaptureEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.WebGLEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.AutoLoadIconsForPage,                True);
-            settings.setAttribute(QWebEngineSettings.TouchIconsEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.FocusOnNavigationEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.PrintElementBackgrounds,                True);
-            settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent,                True);
-            settings.setAttribute(QWebEngineSettings.AllowGeolocationOnInsecureOrigins,                True);
-            settings.setAttribute(QWebEngineSettings.AllowWindowActivationFromJavaScript,                True);
-            settings.setAttribute(QWebEngineSettings.ShowScrollBars,                True);
-            settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture,                True);
-            settings.setAttribute(QWebEngineSettings.JavascriptCanPaste,                True);
-            settings.setAttribute(QWebEngineSettings.WebRTCPublicInterfacesOnly,                True);
-            settings.setAttribute(QWebEngineSettings.DnsPrefetchEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.PdfViewerEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.NavigateOnDropEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.ReadingFromCanvasEnabled,                True);
-            settings.setAttribute(QWebEngineSettings.ForceDarkMode,                True);
-            settings.setAttribute(QWebEngineSettings.PrintHeaderAndFooter,                True);
-            settings.setAttribute(QWebEngineSettings.PreferCSSMarginsForPrinting,                True);
-            settings.setAttribute(QWebEngineSettings.TouchEventsApiEnabled,                True);
+        settings = self.settings()
+        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,           True); 
+        settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,            True);
+        settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled,      True);
+        settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled,      True);
+        settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,  False);
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled,                True);
+        #-------------------------
+        settings.setAttribute(QWebEngineSettings.AutoLoadImages,                True);
+        settings.setAttribute(QWebEngineSettings.JavascriptEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.JavascriptCanOpenWindows,                True);
+        settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,                True);
+        settings.setAttribute(QWebEngineSettings.LinksIncludedInFocusChain,                True);
+        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls,                True);
+        settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.SpatialNavigationEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls,                True);
+        settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.ScrollAnimatorEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.ErrorPageEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.PluginsEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.ScreenCaptureEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.WebGLEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.AutoLoadIconsForPage,                True);
+        settings.setAttribute(QWebEngineSettings.TouchIconsEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.FocusOnNavigationEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.PrintElementBackgrounds,                True);
+        settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent,                True);
+        settings.setAttribute(QWebEngineSettings.AllowGeolocationOnInsecureOrigins,                True);
+        settings.setAttribute(QWebEngineSettings.AllowWindowActivationFromJavaScript,                True);
+        settings.setAttribute(QWebEngineSettings.ShowScrollBars,                True);
+        settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture,                True);
+        settings.setAttribute(QWebEngineSettings.JavascriptCanPaste,                True);
+        settings.setAttribute(QWebEngineSettings.WebRTCPublicInterfacesOnly,                True);
+        settings.setAttribute(QWebEngineSettings.DnsPrefetchEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.NavigateOnDropEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.ReadingFromCanvasEnabled,                True);
+        settings.setAttribute(QWebEngineSettings.ForceDarkMode,                True);
+        settings.setAttribute(QWebEngineSettings.PrintHeaderAndFooter,                True);
+        settings.setAttribute(QWebEngineSettings.PreferCSSMarginsForPrinting,                True);
+        settings.setAttribute(QWebEngineSettings.TouchEventsApiEnabled,                True);
 
 class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, profile, parent):
@@ -139,9 +139,6 @@ class BrowserTab(QWidget):
     
     def load_url(self):
         url = self.url_bar.text().strip()
-        #if url.startswith("g:"):
-        #    search_query = url[2:].strip().replace(" ", "+")
-        #    url = f"https://www.google.com/search?q={search_query}"
         if not url.startswith("http"):
             url = "https://" + url
         self.web_view.setUrl(url)
@@ -155,23 +152,22 @@ class BrowserTab(QWidget):
             url = url.toString();
         self.url_bar.setText(url);
         extracted = tldextract.extract(url)
-        domain = extracted.domain
-        self.qtabwidget.setTabText( self.qtabwidget.currentIndex() , domain);
+        self.qtabwidget.setTabText( self.qtabwidget.currentIndex() , extracted.domain);
     
     def save_history(self, url):
         history = []
-        if os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, "r") as file:
+        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
+            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
                 history = json.load(file)
         
         if url not in history:
             history.append(url)
-        with open(HISTORY_FILE, "w") as file:
+        with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
             json.dump(history[-100:], file)  # Store last 100 entries
     
     def show_suggestions(self):
-        if os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, "r") as file:
+        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
+            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
                 history = json.load(file)
             
             text = self.url_bar.text().lower()
@@ -253,10 +249,9 @@ class Browser(QMainWindow):
         tab.url_bar.setFocus()
     
     def show_history(self):
-        if os.path.exists(HISTORY_FILE):
-            with open(HISTORY_FILE, "r") as file:
+        if os.path.exists(os.path.join(self.path, HISTORY_FILE)):
+            with open( os.path.join(self.path, HISTORY_FILE), "r") as file:
                 history = json.load(file)
-            
             history_tab = BrowserTab()
             history_tab.web_view.setHtml("<h2>Browsing History</h2><ul>" + "".join(f'<li><a href=\"{url}\">{url}</a></li>' for url in history) + "</ul>")
             index = self.tabs.addTab(history_tab, "History")

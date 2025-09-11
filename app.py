@@ -35,11 +35,12 @@ def main():
     app = QApplication(sys.argv)
     f = FormLogin();
     f.exec();
-    print("directory:", f.diretorio);
+    if f.diretorio == None:
+        f.diretorio = os.path.expanduser("~");
     browser = Browser(f.diretorio)
     browser.show()
     #browser.tabs.currentWidget().url_bar.setFocus() passar isso lá para classe Browser
-    sys.exit(app.exec())    
+    sys.exit(app.exec());
 
 if __name__ == "__main__":
     
