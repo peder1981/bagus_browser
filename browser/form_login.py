@@ -24,15 +24,13 @@ class FormLogin(QDialog):
         pwd_login = QLabel("Run this script:")
         pwd_login.setProperty("class", "normal")
         layout_login.addWidget(pwd_login, 2, 0)
-
         self.textEdit = QTextEdit();
         layout_login.addWidget(self.textEdit, 3, 0, 1, 3)
         self.txt_login_username.textChanged.connect(self.txt_login_username_click)
-
         btn_register_navegar = QPushButton("Start Browser")
         btn_register_navegar.clicked.connect(self.start_browser_click)
         layout_login.addWidget(btn_register_navegar, 4, 1)
-
+        self.setStyleSheet(self.load_styles());
         self.setLayout(layout_login)
     def start_browser_click(self):
         if self.txt_login_username.text().strip() == "":
@@ -46,3 +44,51 @@ class FormLogin(QDialog):
     def txt_login_username_click(self):
         self.textEdit.clear()
         self.textEdit.setPlainText("sudo /bin/bash " + BROWSER_PATH + "/bash/create.sh " + self.txt_login_username.text());
+
+    def load_styles(self):
+        return """
+        * {
+            font-family: Consolas;
+        }
+        QMainWindow {
+            background-color: #0f0f0f;
+            border: 2px solid #ff0000;
+        }
+        QTabWidget::pane {
+            border: 2px solid #ff0000;
+            background-color: #1a1a1a;
+        }
+        QTabBar::tab {
+            background: #2b2b2b;
+            color: #ff0000;
+            padding: 10px;
+            border: 1px solid #ff0000;
+        }
+        QTabBar::tab:selected {
+            background: #ff0000;
+            color: #000;
+        }
+        QToolBar {
+            border-bottom: 2px solid black;
+            border-top: 2px solid black;
+            background: #ff0000;
+            color: #ff0000;
+        }
+        QTextEdit {
+            background: #121212;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+            padding: 5px;
+        }
+        QLineEdit {
+            background: #121212;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+            padding: 5px;
+        }
+        QListWidget {
+            background: #121212;
+            color: #ff0000;
+            border: 1px solid #ff0000;
+        }
+        """

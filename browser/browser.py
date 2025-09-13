@@ -1,25 +1,27 @@
 import tldextract, sys, uuid, json, os
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QToolBar
+from PySide6.QtWidgets import QLayout, QDialog, QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QButtonGroup, QToolBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings, QWebEngineUrlRequestInterceptor
 from urllib.parse import urlparse
-
 
 HISTORY_FILE = "history.json"
 
-app = None;
+class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-#from PySide6.QtWebEngineWidgets import QWebEnginePage
-#QWebEngineProfile::defaultProfile()-&gt;settings()-&gt;setAttribute(QWebEngineSettings::DnsPrefetchEnabled, true);
+    def interceptRequest(self, info):
+        pass;
 
 class PrivateProfile(QWebEngineProfile):
     def __init__(self, path, config, parent=None):
         super().__init__(parent)
         self.path = path;
-        #self.setRequestInterceptor(AdBlockInterceptor())
+        self.intercept = WebEngineUrlRequestInterceptor();
+        self.setUrlRequestInterceptor(self.intercept);
         #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
         self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
         self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
@@ -71,10 +73,17 @@ class CustomWebEnginePage(QWebEnginePage):
         self.bloqueios = ["gstatic.com"];
         self.download_ext = ["iso", "zip", "gz"];
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
+        pass;
         # InfoMessageLevel, WarningMessageLevel, ErrorMessageLevel, DebugMessageLevel
-        print(f"JS Console ({level.name}): {message} (Line: {lineNumber}, Source: {sourceId})")
+        #print(f"JS Console ({level.name}): {message} (Line: {lineNumber}, Source: {sourceId})")
     def acceptNavigationRequest(self, url,  _type, isMainFrame):
-        print( "\033[91m", url.toString()[:200],  _type, isMainFrame, "\033[0m");
+        #if _type == QWebEnginePage.NavigationType.NavigationTypeRedirect:
+        #    dlg = QDialog()
+        #    dlg.setWindowTitle("HELLO!")
+        #    dlg.exec()
+        #print("Type:", type(_type), _type);
+        #print( "\033[91m", url.toString()[:200],  _type, isMainFrame, "\033[0m");
+        print(url);
         for bloqueio in self.bloqueios:
             if url.toString().find( bloqueio ) > 0:
                 return False;
@@ -82,12 +91,14 @@ class CustomWebEnginePage(QWebEnginePage):
 
 
 class BrowserTab(QWidget):
-    def __init__(self, profile, qtabwidget, url=None, parent=None):
+    #def __init__(self, profile, qtabwidget, url=None, parent=None):
+    def __init__(self, browser, url=None, parent=None):
         super().__init__(parent)
         layout = QVBoxLayout()
-        self.profile = profile;
-        self.qtabwidget = qtabwidget;
+        self.browser = browser;
+        self.profile = self.browser.profile;
         self.url_bar = QLineEdit()
+        self.url_bar.setMinimumWidth(800);
         self.url_bar.setPlaceholderText("Enter URL...")
         self.url_bar.textChanged.connect(self.show_suggestions)
         self.url_bar.returnPressed.connect(self.handle_enter_press)
@@ -98,9 +109,33 @@ class BrowserTab(QWidget):
         self.history_list.itemActivated.connect(self.select_history_item)
         self.web_view = QWebEngineView()
         #self.web_view.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks);
-        self.web_view.setPage(CustomWebEnginePage(self.profile, self))
+        self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
         self.web_view.loadFinished.connect(self.on_load_finished)
-        layout.addWidget(self.url_bar)
+        #layout.addWidget(self.url_bar)
+
+        bt1 = QPushButton("aaa1")
+        bt2 = QPushButton("aaa2")
+        bt3 = QPushButton("aaa3")
+        bt4 = QPushButton("aaa4")
+        ly = QHBoxLayout();
+        ly.addStretch(0)
+        ly.setSizeConstraint(QLayout.SetFixedSize)
+        ly.addWidget(bt1);
+        ly.addWidget(bt2);
+        ly.addWidget(bt3);
+        ly.addWidget(bt4);
+        widget1 = QWidget();
+        widget1.setLayout( ly );
+
+        ly2 = QHBoxLayout();
+        ly2.addStretch(0)
+        ly2.setSizeConstraint(QLayout.SetFixedSize)
+        ly2.addWidget(self.url_bar);
+        ly2.addWidget(widget1);
+        widget2 = QWidget();
+        widget2.setLayout( ly2 );
+        layout.addWidget(widget2)
+
         layout.addWidget(self.history_list)
         layout.addWidget(self.web_view)
         self.setLayout(layout)
@@ -118,7 +153,7 @@ class BrowserTab(QWidget):
     def callback_function(self, html):
         if html == None or html == "":
             return;
-        print("\033[95m", html, "\033[0m" );
+        #print("\033[95m", html[:50], "\033[0m" );
         pass;
     def handle_enter_press(self):
         if self.history_list.isVisible() and self.history_list.count() > 0:
@@ -141,38 +176,34 @@ class BrowserTab(QWidget):
             url = url.toString();
         self.url_bar.setText(url);
         extracted = tldextract.extract(url)
-        self.qtabwidget.setTabText( self.qtabwidget.currentIndex() , extracted.domain);
+        self.browser.tabs.setTabText( self.browser.tabs.currentIndex() , extracted.domain);
     
     def save_history(self, url):
-        history = []
-        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
-            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
-                history = json.load(file)
-        
-        if url not in history:
-            history.append(url)
-        with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
-            json.dump(history[-100:], file)  # Store last 100 entries
+        #history = []
+        #if os.path.exists(os.path.join(self.browser.profile.path, HISTORY_FILE)):
+        #    with open(os.path.join(self.browser.profile.path, HISTORY_FILE), "r") as file:
+        #        history = json.load(file)
+        if url not in self.browser.history:
+            self.browser.history.append(url)
+        self.browser.save();
     
     def show_suggestions(self):
-        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
-            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
-                history = json.load(file)
-            
-            text = self.url_bar.text().lower()
-            suggestions = [url for url in history if text in url.lower()]
-            self.history_list.hide();
-            if suggestions:
-                if len(suggestions) == 0:
-                    self.history_list.hide()
-                elif len(suggestions) == 1:
-                    if suggestions[0].lower() == text.lower():
-                        self.history_list.hide()
-                else:
-                    self.history_list.clear()
-                    self.history_list.addItems(suggestions)
-                    self.history_list.setFixedHeight(min(len(suggestions) * 20, 200))
-                    self.history_list.show()
+        text = self.url_bar.text().lower()
+        suggestions = [url for url in self.browser.history if url.lower().find(text.lower()) >= 0 ]
+        #suggestions = [];
+        #for url in self.browser.history:
+        self.history_list.hide();
+        if suggestions:
+            if len(suggestions) == 0:
+                self.history_list.hide()
+                #elif len(suggestions) == 1:
+                #    if suggestions[0][suggestions[0].find("://") + 3:].lower() == text.lower():
+                #        self.history_list.hide()
+            else:
+                self.history_list.clear()
+                self.history_list.addItems(suggestions)
+                self.history_list.setFixedHeight(min(len(suggestions) * 20, 200))
+                self.history_list.show()
     
     def select_history_item(self, item):
         self.url_bar.setText(item.text())
@@ -212,6 +243,10 @@ class Browser(QMainWindow):
         self.tabs.setTabsClosable(False)  # Disable close buttons
         self.tabs.setDocumentMode(True)
         self.profile = PrivateProfile(self.path, self.config);
+        self.history = [];
+        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
+            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
+                self.history = json.load(file)
         self.new_tab(url=self.config["default"]["url"]);
         layout = QVBoxLayout();
         layout.addWidget(self.tabs);
@@ -220,6 +255,12 @@ class Browser(QMainWindow):
         self.init_shortcuts()
         #self.showFullScreen()
         
+        
+    
+    def save(self):
+        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
+            with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
+                file.write( json.dumps( self.history ) );
     def the_button_was_clicked(self):
         QApplication.quit();
         exit(0);
@@ -231,7 +272,7 @@ class Browser(QMainWindow):
             url = url.toString();
         if url == None:
             url = self.config["default"]["url"];
-        tab = BrowserTab(self.profile, self.tabs, url=url)
+        tab = BrowserTab(self, url=url)
         index = self.tabs.addTab(tab, "New Tab")
         self.tabs.setCurrentIndex(index)
         tab.url_bar.setFocus()
