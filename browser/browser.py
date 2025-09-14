@@ -1,4 +1,4 @@
-import tldextract, sys, uuid, json, os
+import tldextract, sys, uuid, json, os, importlib
 
 from PySide6.QtWidgets import QLayout, QDialog, QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QButtonGroup, QToolBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
@@ -9,10 +9,32 @@ from urllib.parse import urlparse
 
 HISTORY_FILE = "history.json"
 
+class ProjectsHelper():
+    def __init__(self):
+        self.lista = None;
+        pass;
+    def list(self):
+        if self.lista == None:
+            self.lista = [];
+            lista = os.listdir(os.path.join(os.environ["BROWSER_PATH"], "projects"));
+            self.lista = [];
+            for item in lista:
+                if not os.path.exists(os.path.join(os.environ["BROWSER_PATH"], "projects", item, "config.json")):
+                    continue;
+                js = json.loads( open(os.path.join(os.environ["BROWSER_PATH"], "projects", item, "config.json"), "r").read() );
+                if js["active"]:
+                    module_spec = importlib.util.spec_from_file_location( js["module"], os.path.join(os.environ["BROWSER_PATH"], "projects", item, js["path"])  ) ;
+                    module = importlib.util.module_from_spec(module_spec);
+                    module_spec.loader.exec_module(module);
+                    class_obj = getattr(module, js["name"]);
+                    object_dynamic = class_obj();
+                    self.lista.append( object_dynamic );
+        return self.lista; 
+
+
 class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, parent=None):
         super().__init__(parent)
-
     def interceptRequest(self, info):
         pass;
 
@@ -70,25 +92,29 @@ class PrivateProfile(QWebEngineProfile):
 class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, profile, parent):
         super().__init__(profile, parent);
-        self.bloqueios = ["gstatic.com"];
+        self.bloqueios = [ "gstatic.com", "doubleclick.net", "googlesyndication.com", "metrike.com.br", "dtrafficquality.google", "metrike.com.br"];
         self.download_ext = ["iso", "zip", "gz"];
+        #self.loadFinished.connect(self.on_load_finished_signal)
+        #self.loadStarted.connect( self.on_load_started_signal)
+        self.certificateError.connect( self.certificateError_signal );
+    def certificateError_signal(self, qwebenginecertificateerror):
+        pass;#<PySide6.QtWebEngineCore.QWebEngineCertificateError object at 0x7f07e0445c80>
+    def javaScriptConsoleMessage(self, javaScriptConsoleMessageLevel, message, lineNumber, sourceID):
+        print("\033[91mCONSOLE:", javaScriptConsoleMessageLevel, message, lineNumber, sourceID, "\033[0m");
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
-        pass;
-        # InfoMessageLevel, WarningMessageLevel, ErrorMessageLevel, DebugMessageLevel
-        #print(f"JS Console ({level.name}): {message} (Line: {lineNumber}, Source: {sourceId})")
+        print(f"\033[94mJS Console ({level.name}):\033[0m {message} (Line: {lineNumber}, Source: {sourceId})")
     def acceptNavigationRequest(self, url,  _type, isMainFrame):
-        #if _type == QWebEnginePage.NavigationType.NavigationTypeRedirect:
-        #    dlg = QDialog()
-        #    dlg.setWindowTitle("HELLO!")
-        #    dlg.exec()
-        #print("Type:", type(_type), _type);
-        #print( "\033[91m", url.toString()[:200],  _type, isMainFrame, "\033[0m");
-        print(url);
         for bloqueio in self.bloqueios:
             if url.toString().find( bloqueio ) > 0:
-                return False;
-        return super().acceptNavigationRequest(url,  _type, isMainFrame)
-
+                if _type == QWebEnginePage.NavigationType.NavigationTypeTyped or _type == QWebEnginePage.NavigationType.NavigationTypeRedirect:
+                    dlg = QDialog()
+                    dlg.setWindowTitle(bloqueio)
+                    dlg.exec()
+                    break;
+                else:
+                    print("\033[91mBLOQUEIO:", _type, bloqueio, "\033[0m");
+                    return False;
+        return super().acceptNavigationRequest(url, _type, isMainFrame)
 
 class BrowserTab(QWidget):
     #def __init__(self, profile, qtabwidget, url=None, parent=None):
@@ -108,22 +134,16 @@ class BrowserTab(QWidget):
         self.history_list.itemClicked.connect(self.select_history_item)
         self.history_list.itemActivated.connect(self.select_history_item)
         self.web_view = QWebEngineView()
-        #self.web_view.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks);
+        self.project_helper = ProjectsHelper();
         self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
-        self.web_view.loadFinished.connect(self.on_load_finished)
-        #layout.addWidget(self.url_bar)
-
-        bt1 = QPushButton("aaa1")
-        bt2 = QPushButton("aaa2")
-        bt3 = QPushButton("aaa3")
-        bt4 = QPushButton("aaa4")
+        self.web_view.loadFinished.connect(self.on_load_finished_signal)
+        #self.web_view.loadFinished.connect(self.on_load_started_signal)
+        # montar a barrinha com botoes==============
         ly = QHBoxLayout();
+        for project in self.project_helper.list():
+            project.before_layout(ly);
         ly.addStretch(0)
         ly.setSizeConstraint(QLayout.SetFixedSize)
-        ly.addWidget(bt1);
-        ly.addWidget(bt2);
-        ly.addWidget(bt3);
-        ly.addWidget(bt4);
         widget1 = QWidget();
         widget1.setLayout( ly );
 
@@ -135,6 +155,7 @@ class BrowserTab(QWidget):
         widget2 = QWidget();
         widget2.setLayout( ly2 );
         layout.addWidget(widget2)
+        #========================================
 
         layout.addWidget(self.history_list)
         layout.addWidget(self.web_view)
@@ -144,17 +165,16 @@ class BrowserTab(QWidget):
         if url != None:
             self.url_bar.setText(url);
             self.load_url();
-    def on_load_finished(self):
-        self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
-        #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
-        #javascript = "var links = document.links, i, length;for (i = 0, length = links.length; i < length; i++) {    links[i].target == '_blank' && links[i].removeAttribute('target');}";
-        #javascript = "function stoperror() {\n console.log('ERRO ignorado');\n   return true;\n}\nwindow.onerror = stoperror;\n"
-        #self.web_view.page().runJavaScript(javascript);
-    def callback_function(self, html):
-        if html == None or html == "":
-            return;
-        #print("\033[95m", html[:50], "\033[0m" );
+    
+    def on_load_started_signal(self):
         pass;
+    def callback_function(self, html):
+        for project in self.project_helper.list():
+            project.after_render( self.web_view.page(), html );
+        #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
+    def on_load_finished_signal(self, sucesso):
+        self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
+
     def handle_enter_press(self):
         if self.history_list.isVisible() and self.history_list.count() > 0:
             self.select_history_item(self.history_list.item(0))  # Select top result
@@ -179,10 +199,6 @@ class BrowserTab(QWidget):
         self.browser.tabs.setTabText( self.browser.tabs.currentIndex() , extracted.domain);
     
     def save_history(self, url):
-        #history = []
-        #if os.path.exists(os.path.join(self.browser.profile.path, HISTORY_FILE)):
-        #    with open(os.path.join(self.browser.profile.path, HISTORY_FILE), "r") as file:
-        #        history = json.load(file)
         if url not in self.browser.history:
             self.browser.history.append(url)
         self.browser.save();
@@ -190,8 +206,6 @@ class BrowserTab(QWidget):
     def show_suggestions(self):
         text = self.url_bar.text().lower()
         suggestions = [url for url in self.browser.history if url.lower().find(text.lower()) >= 0 ]
-        #suggestions = [];
-        #for url in self.browser.history:
         self.history_list.hide();
         if suggestions:
             if len(suggestions) == 0:

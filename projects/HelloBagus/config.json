@@ -1,0 +1,6 @@
+{
+    "active" : true,
+    "module" : "hello",
+    "path"   : "src/hello.py",
+    "name"   : "Hello"
+}
