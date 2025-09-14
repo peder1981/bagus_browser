@@ -1,5 +1,8 @@
 import tldextract, sys, uuid, json, os, importlib
 
+BROWSER_PATH = os.environ["BROWSER_PATH"]
+sys.path.append( BROWSER_PATH );
+
 from PySide6.QtWidgets import QLayout, QDialog, QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QButtonGroup, QToolBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QAction
@@ -7,114 +10,12 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings, QWebEngineUrlRequestInterceptor
 from urllib.parse import urlparse
 
+from browser.panel_myass import PanelMyass;
+from browser.api.project_helper import ProjectHelper;
+from browser.ui.custom_web_engine_page import CustomWebEnginePage;
+from browser.ui.private_profile import PrivateProfile;
+
 HISTORY_FILE = "history.json"
-
-class ProjectsHelper():
-    def __init__(self):
-        self.lista = None;
-        pass;
-    def list(self):
-        if self.lista == None:
-            self.lista = [];
-            lista = os.listdir(os.path.join(os.environ["BROWSER_PATH"], "projects"));
-            self.lista = [];
-            for item in lista:
-                if not os.path.exists(os.path.join(os.environ["BROWSER_PATH"], "projects", item, "config.json")):
-                    continue;
-                js = json.loads( open(os.path.join(os.environ["BROWSER_PATH"], "projects", item, "config.json"), "r").read() );
-                if js["active"]:
-                    module_spec = importlib.util.spec_from_file_location( js["module"], os.path.join(os.environ["BROWSER_PATH"], "projects", item, js["path"])  ) ;
-                    module = importlib.util.module_from_spec(module_spec);
-                    module_spec.loader.exec_module(module);
-                    class_obj = getattr(module, js["name"]);
-                    object_dynamic = class_obj();
-                    self.lista.append( object_dynamic );
-        return self.lista; 
-
-
-class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-    def interceptRequest(self, info):
-        pass;
-
-class PrivateProfile(QWebEngineProfile):
-    def __init__(self, path, config, parent=None):
-        super().__init__(parent)
-        self.path = path;
-        self.intercept = WebEngineUrlRequestInterceptor();
-        self.setUrlRequestInterceptor(self.intercept);
-        #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
-        self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
-        self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
-        self.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk);
-        self.setPersistentStoragePath(self.path)
-        settings = self.settings()
-        settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,               config["settings"]["LocalStorageEnabled"]); 
-        settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                config["settings"]["XSSAuditingEnabled"]);
-        settings.setAttribute(QWebEngineSettings.HyperlinkAuditingEnabled,          config["settings"]["HyperlinkAuditingEnabled"]);
-        settings.setAttribute(QWebEngineSettings.FullScreenSupportEnabled,          config["settings"]["FullScreenSupportEnabled"]);
-        settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,      config["settings"]["JavascriptCanAccessClipboard"]);
-        settings.setAttribute(QWebEngineSettings.PluginsEnabled,                    config["settings"]["PluginsEnabled"]);
-        settings.setAttribute(QWebEngineSettings.AutoLoadImages,                    config["settings"]["AutoLoadImages"]);
-        settings.setAttribute(QWebEngineSettings.JavascriptEnabled,                 config["settings"]["JavascriptEnabled"]);
-        settings.setAttribute(QWebEngineSettings.JavascriptCanOpenWindows,          config["settings"]["JavascriptCanOpenWindows"]);
-        settings.setAttribute(QWebEngineSettings.LinksIncludedInFocusChain,         config["settings"]["LinksIncludedInFocusChain"]);
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls,   config["settings"]["LocalContentCanAccessRemoteUrls"]);
-        settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                config["settings"]["XSSAuditingEnabled"]);
-        settings.setAttribute(QWebEngineSettings.SpatialNavigationEnabled,          config["settings"]["SpatialNavigationEnabled"]);
-        settings.setAttribute(QWebEngineSettings.LocalContentCanAccessFileUrls,     config["settings"]["LocalContentCanAccessFileUrls"]);
-        settings.setAttribute(QWebEngineSettings.ScrollAnimatorEnabled,             config["settings"]["ScrollAnimatorEnabled"]);
-        settings.setAttribute(QWebEngineSettings.ErrorPageEnabled,                  config["settings"]["ErrorPageEnabled"]);
-        settings.setAttribute(QWebEngineSettings.ScreenCaptureEnabled,              config["settings"]["ScreenCaptureEnabled"]);
-        settings.setAttribute(QWebEngineSettings.WebGLEnabled,                      config["settings"]["WebGLEnabled"]);
-        settings.setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled,        config["settings"]["Accelerated2dCanvasEnabled"]);
-        settings.setAttribute(QWebEngineSettings.AutoLoadIconsForPage,              config["settings"]["AutoLoadIconsForPage"]);
-        settings.setAttribute(QWebEngineSettings.TouchIconsEnabled,                 config["settings"]["TouchIconsEnabled"]);
-        settings.setAttribute(QWebEngineSettings.FocusOnNavigationEnabled,          config["settings"]["FocusOnNavigationEnabled"]);
-        settings.setAttribute(QWebEngineSettings.PrintElementBackgrounds,           config["settings"]["PrintElementBackgrounds"]);
-        settings.setAttribute(QWebEngineSettings.AllowRunningInsecureContent,       config["settings"]["AllowRunningInsecureContent"]);
-        settings.setAttribute(QWebEngineSettings.AllowGeolocationOnInsecureOrigins, config["settings"]["AllowGeolocationOnInsecureOrigins"]);
-        settings.setAttribute(QWebEngineSettings.AllowWindowActivationFromJavaScript,config["settings"]["AllowWindowActivationFromJavaScript"]);
-        settings.setAttribute(QWebEngineSettings.ShowScrollBars,                    config["settings"]["ShowScrollBars"]);
-        settings.setAttribute(QWebEngineSettings.PlaybackRequiresUserGesture,       config["settings"]["PlaybackRequiresUserGesture"]);
-        settings.setAttribute(QWebEngineSettings.JavascriptCanPaste,                config["settings"]["JavascriptCanPaste"]);
-        settings.setAttribute(QWebEngineSettings.WebRTCPublicInterfacesOnly,        config["settings"]["WebRTCPublicInterfacesOnly"]);
-        settings.setAttribute(QWebEngineSettings.DnsPrefetchEnabled,                config["settings"]["DnsPrefetchEnabled"]);
-        settings.setAttribute(QWebEngineSettings.PdfViewerEnabled,                  config["settings"]["PdfViewerEnabled"]);
-        settings.setAttribute(QWebEngineSettings.NavigateOnDropEnabled,             config["settings"]["NavigateOnDropEnabled"]);
-        settings.setAttribute(QWebEngineSettings.ReadingFromCanvasEnabled,          config["settings"]["ReadingFromCanvasEnabled"]);
-        settings.setAttribute(QWebEngineSettings.ForceDarkMode,                     config["settings"]["ForceDarkMode"]);
-        settings.setAttribute(QWebEngineSettings.PrintHeaderAndFooter,              config["settings"]["PrintHeaderAndFooter"]);
-        settings.setAttribute(QWebEngineSettings.PreferCSSMarginsForPrinting,       config["settings"]["PreferCSSMarginsForPrinting"]);
-        settings.setAttribute(QWebEngineSettings.TouchEventsApiEnabled,             config["settings"]["TouchEventsApiEnabled"]);
-
-class CustomWebEnginePage(QWebEnginePage):
-    def __init__(self, profile, parent):
-        super().__init__(profile, parent);
-        self.bloqueios = [ "gstatic.com", "doubleclick.net", "googlesyndication.com", "metrike.com.br", "dtrafficquality.google", "metrike.com.br"];
-        self.download_ext = ["iso", "zip", "gz"];
-        #self.loadFinished.connect(self.on_load_finished_signal)
-        #self.loadStarted.connect( self.on_load_started_signal)
-        self.certificateError.connect( self.certificateError_signal );
-    def certificateError_signal(self, qwebenginecertificateerror):
-        pass;#<PySide6.QtWebEngineCore.QWebEngineCertificateError object at 0x7f07e0445c80>
-    def javaScriptConsoleMessage(self, javaScriptConsoleMessageLevel, message, lineNumber, sourceID):
-        print("\033[91mCONSOLE:", javaScriptConsoleMessageLevel, message, lineNumber, sourceID, "\033[0m");
-    def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
-        print(f"\033[94mJS Console ({level.name}):\033[0m {message} (Line: {lineNumber}, Source: {sourceId})")
-    def acceptNavigationRequest(self, url,  _type, isMainFrame):
-        for bloqueio in self.bloqueios:
-            if url.toString().find( bloqueio ) > 0:
-                if _type == QWebEnginePage.NavigationType.NavigationTypeTyped or _type == QWebEnginePage.NavigationType.NavigationTypeRedirect:
-                    dlg = QDialog()
-                    dlg.setWindowTitle(bloqueio)
-                    dlg.exec()
-                    break;
-                else:
-                    print("\033[91mBLOQUEIO:", _type, bloqueio, "\033[0m");
-                    return False;
-        return super().acceptNavigationRequest(url, _type, isMainFrame)
 
 class BrowserTab(QWidget):
     #def __init__(self, profile, qtabwidget, url=None, parent=None):
@@ -134,7 +35,7 @@ class BrowserTab(QWidget):
         self.history_list.itemClicked.connect(self.select_history_item)
         self.history_list.itemActivated.connect(self.select_history_item)
         self.web_view = QWebEngineView()
-        self.project_helper = ProjectsHelper();
+        self.project_helper = ProjectHelper();
         self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
         self.web_view.loadFinished.connect(self.on_load_finished_signal)
         #self.web_view.loadFinished.connect(self.on_load_started_signal)
@@ -172,14 +73,17 @@ class BrowserTab(QWidget):
         for project in self.project_helper.list():
             project.after_render( self.web_view.page(), html );
         #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
+    
     def on_load_finished_signal(self, sucesso):
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
-
+        self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
+    
     def handle_enter_press(self):
         if self.history_list.isVisible() and self.history_list.count() > 0:
             self.select_history_item(self.history_list.item(0))  # Select top result
         else:
             self.load_url();
+        self.history_list.hide()
     
     def load_url(self):
         url = self.url_bar.text().strip()
@@ -187,8 +91,8 @@ class BrowserTab(QWidget):
             url = "https://" + url
         self.web_view.setUrl(url)
         self.save_history(url)
-        self.history_list.hide()
         self.web_view.setFocus()
+        self.history_list.hide()
     
     def update_url_bar(self, url):
         url = url;
@@ -230,6 +134,7 @@ class BrowserTab(QWidget):
         else:
             QLineEdit.keyPressEvent(self.url_bar, event)
 
+
 class Browser(QMainWindow):
     def __init__(self, path):
         super().__init__();
@@ -243,10 +148,14 @@ class Browser(QMainWindow):
         self.tab_principal.addTab(self.tab_page_browser,    "Browser")
         self.tab_page_download = QWidget()
         self.tab_principal.addTab(self.tab_page_download,   "Download")
-        self.tab_page_myass = QWidget()
+        self.tab_page_navigate = QWidget()
+        self.tab_principal.addTab(self.tab_page_navigate,   "Navigation")
+        self.tab_page_myass = PanelMyass()
         self.tab_principal.addTab(self.tab_page_myass,      "MyAss")
         self.tab_page_disroot = QWidget()
         self.tab_principal.addTab(self.tab_page_disroot,    "Disroot")
+        self.tab_page_xmpp = QWidget()
+        self.tab_principal.addTab(self.tab_page_xmpp,       "XMPP Chat")
         self.tab_page_extension = QWidget()
         self.tab_principal.addTab(self.tab_page_extension,  "Extension")
         self.tab_page_settings = QWidget()
@@ -269,8 +178,6 @@ class Browser(QMainWindow):
         self.init_shortcuts()
         #self.showFullScreen()
         
-        
-    
     def save(self):
         if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
             with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
@@ -289,16 +196,7 @@ class Browser(QMainWindow):
         tab = BrowserTab(self, url=url)
         index = self.tabs.addTab(tab, "New Tab")
         self.tabs.setCurrentIndex(index)
-        tab.url_bar.setFocus()
-    
-    #def show_history(self):
-    #    if os.path.exists(os.path.join(self.path, HISTORY_FILE)):
-    #        with open( os.path.join(self.path, HISTORY_FILE), "r") as file:
-    #            history = json.load(file)
-    #        history_tab = BrowserTab()
-    #        history_tab.web_view.setHtml("<h2>Browsing History</h2><ul>" + "".join(f'<li><a href=\"{url}\">{url}</a></li>' for url in history) + "</ul>")
-    #        index = self.tabs.addTab(history_tab, "History")
-    #        self.tabs.setCurrentIndex(index)
+        tab.url_bar.setFocus();
     def minimize(self):
         self.showMinimized();
     def close_application(self):
@@ -310,46 +208,7 @@ class Browser(QMainWindow):
             self.tabs.removeTab(index);
     
     def load_styles(self):
-        return """
-        * {
-            font-family: Consolas;
-        }
-        QMainWindow {
-            background-color: #0f0f0f;
-            border: 2px solid #ff0000;
-        }
-        QTabWidget::pane {
-            border: 2px solid #ff0000;
-            background-color: #1a1a1a;
-        }
-        QTabBar::tab {
-            background: #2b2b2b;
-            color: #ff0000;
-            padding: 10px;
-            border: 1px solid #ff0000;
-        }
-        QTabBar::tab:selected {
-            background: #ff0000;
-            color: #000;
-        }
-        QToolBar {
-            border-bottom: 2px solid black;
-            border-top: 2px solid black;
-            background: #ff0000;
-            color: #ff0000;
-        }
-        QLineEdit {
-            background: #121212;
-            color: #ff0000;
-            border: 1px solid #ff0000;
-            padding: 5px;
-        }
-        QListWidget {
-            background: #121212;
-            color: #ff0000;
-            border: 1px solid #ff0000;
-        }
-        """
+        return open( os.path.join( BROWSER_PATH, "browser", "resources", "style.txt" ), "r" ).read();
     
     def init_shortcuts(self):
         close_action = QAction(self)

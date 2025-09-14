@@ -5,7 +5,6 @@ from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import (QMessageBox, QApplication, QFileDialog, QMainWindow, QComboBox, QMdiArea, QMessageBox, QTextEdit, QDialog, QDialogButtonBox, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QPushButton)
 
 BROWSER_PATH = os.environ["BROWSER_PATH"]
-
 sys.path.append( BROWSER_PATH );
 
 class FormLogin(QDialog):
@@ -39,7 +38,6 @@ class FormLogin(QDialog):
         else:
             if os.path.exists(os.path.join("/tmp", self.txt_login_username.text() )):
                 self.diretorio = os.path.join("/tmp", self.txt_login_username.text() );
-                print(self.diretorio);
                 self.close();
     def txt_login_username_click(self):
         self.textEdit.clear()
