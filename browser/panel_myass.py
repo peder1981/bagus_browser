@@ -11,7 +11,8 @@ from browser.ui.table import *
 
 class PanelMyass(QWidget):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent);
+        self.parent_ = parent;
         self.path_config = os.path.join(os.path.expanduser("~/bagus/"), "myass.json");
         if os.path.exists(self.path_config):
             self.config = json.loads( open(self.path_config, "r").read() );
@@ -28,7 +29,7 @@ class PanelMyass(QWidget):
         layout.addWidget(self.tab_myass);
         self.setLayout(layout);
         #--------------------------- works --------------
-        self.table = Table.widget_tabela(self, ["result", "workflow"], double_click=self.table_double_click);
+        self.table = Table.widget_tabela(self.parent_, ["result", "workflow"], double_click=self.table_double_click); #, 
         layout = QVBoxLayout();
         layout.addWidget(self.table);
         btn_atualizar = QPushButton("Atualizar");
@@ -43,11 +44,14 @@ class PanelMyass(QWidget):
         try:
             self.config = json.loads( open(self.path_config, "r").read() );
             headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'}
-            page = requests.post(self.config["url"] + "service/works_list.php", timeout=10, headers=headers, json={ "device": "browser", "publick_key_name" : self.config["token"]});
+            page = requests.post(self.config["url"] + "service/works_list.php", timeout=30, headers=headers, json={ "device": "browser", "publick_key_name" : self.config["token"]});
             texto = ""
             if page.status_code == 200:
                 texto = page.text;
                 self.close();
+            else:
+                print(page.text);
+                print("Satus request:", page.status_code);
             texto = texto.replace(self.config["token"],"");
             return texto;
         except:
@@ -55,6 +59,8 @@ class PanelMyass(QWidget):
     def btn_atualizar_click(self):
         self.table.cleanList();
         trabalhos = self.works();
+        #trabalhos = [{"campo1" : "a", "campo2" : "b"}, {"campo1" : "a", "campo2" : "b"}]
+        #self.table.populate(trabalhos, ["campo1", "campo2"])
         for item in trabalhos:
             self.table.add([item["result"], item["workflow"]], item);
     

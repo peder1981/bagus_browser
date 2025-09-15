@@ -16,7 +16,6 @@ class Hello():
     def after_render(self, page, html):
         javascript = """
             var elementos = document.getElementsByTagName('h1');
-            console.log('Resultado:', elementos);
             if (elementos != null && elementos.length > 0)
                 elementos[0].innerHTML = elementos[0].innerHTML + ' !!!BagusBagusGo!!!'
             """;

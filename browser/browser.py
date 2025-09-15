@@ -75,8 +75,9 @@ class BrowserTab(QWidget):
         #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
     
     def on_load_finished_signal(self, sucesso):
-        self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
+        self.atualizar_titulo_aba();
+        self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
     
     def handle_enter_press(self):
         if self.history_list.isVisible() and self.history_list.count() > 0:
@@ -93,15 +94,16 @@ class BrowserTab(QWidget):
         self.save_history(url)
         self.web_view.setFocus()
         self.history_list.hide()
+    def atualizar_titulo_aba(self):
+        extracted = tldextract.extract(self.url_bar.text());
+        self.browser.tabs.setTabText( self.browser.tabs.currentIndex() , extracted.domain);
     
     def update_url_bar(self, url):
         url = url;
         if type(url) != type(""):
             url = url.toString();
         self.url_bar.setText(url);
-        extracted = tldextract.extract(url)
-        self.browser.tabs.setTabText( self.browser.tabs.currentIndex() , extracted.domain);
-    
+        self.atualizar_titulo_aba();
     def save_history(self, url):
         if url not in self.browser.history:
             self.browser.history.append(url)
@@ -150,7 +152,7 @@ class Browser(QMainWindow):
         self.tab_principal.addTab(self.tab_page_download,   "Download")
         self.tab_page_navigate = QWidget()
         self.tab_principal.addTab(self.tab_page_navigate,   "Navigation")
-        self.tab_page_myass = PanelMyass()
+        self.tab_page_myass = PanelMyass(parent=self)
         self.tab_principal.addTab(self.tab_page_myass,      "MyAss")
         self.tab_page_disroot = QWidget()
         self.tab_principal.addTab(self.tab_page_disroot,    "Disroot")
@@ -182,12 +184,14 @@ class Browser(QMainWindow):
         if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
             with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
                 file.write( json.dumps( self.history ) );
+    
     def the_button_was_clicked(self):
         QApplication.quit();
         exit(0);
     
     def new_tab_event(self):
         return self.new_tab(self.config["default"]["url"]);
+    
     def new_tab(self, url=None):
         if url != None and type(url) != type(""):
             url = url.toString();
@@ -197,8 +201,10 @@ class Browser(QMainWindow):
         index = self.tabs.addTab(tab, "New Tab")
         self.tabs.setCurrentIndex(index)
         tab.url_bar.setFocus();
+    
     def minimize(self):
         self.showMinimized();
+    
     def close_application(self):
         self.close();
         sys.exit(0);

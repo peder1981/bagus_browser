@@ -35,7 +35,7 @@ class Table(QTableWidget):
         self.setRowCount( len(self.lista) );
         for i in range(len(self.lista)):
             for j in range(len(fields)):
-                self.setItem( i , j, QTableWidgetItem( getattr(self.lista[i], fields[j]) ) );
+                self.setItem( i , j, QTableWidgetItem( self.lista[i][fields[j]])  );
     
     def __doubleSelect__(self):
         if self.double_select != None:
@@ -50,7 +50,7 @@ class Table(QTableWidget):
         return self.currentRow();
 
     @staticmethod
-    def widget_tabela(form, colunas, tamanhos=None, double_click=None):
+    def widget_tabela(parent, colunas, tamanhos=None, double_click=None):
         if tamanhos == None:
             tamanhos = [];
             for i in range(len(colunas)):
@@ -58,7 +58,7 @@ class Table(QTableWidget):
                     tamanhos.append(QHeaderView.Stretch);
                 else:
                     tamanhos.append(QHeaderView.ResizeToContents);
-        table = Table(form);
+        table = Table(parent=parent);
         if double_click != None:
             table.doubleClicked.connect( double_click );
         js = {};

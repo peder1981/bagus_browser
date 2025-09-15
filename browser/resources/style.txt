@@ -1,5 +1,7 @@
 * {
     font-family: Consolas;
+    background-color: #0f0f0f;
+    font-size: 14px;
 }
 QMainWindow {
     background-color: #0f0f0f;
@@ -15,6 +17,14 @@ QTabBar::tab {
     padding: 10px;
     border: 1px solid #ff0000;
 }
+
+QTableWidget {
+    border: 1px solid #ff0000;
+    border-top: 2px solid black;
+    background: #121212;
+    color: #ff0000;
+}
+
 QTabBar::tab:selected {
     background: #ff0000;
     color: #000;
@@ -31,8 +41,36 @@ QLineEdit {
     border: 1px solid #ff0000;
     padding: 5px;
 }
+QLabel {
+    background: #0f0f0f;
+    color: #ff0000;
+}
+QTextEdit {
+    background: #121212;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    padding: 5px;
+}
+QPushButton {
+    background: #121212;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    padding: 5px;
+}
 QListWidget {
     background: #121212;
     color: #ff0000;
     border: 1px solid #ff0000;
+}
+QComboBox {
+    background: #121212;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    padding: 5px;
+}
+QWebEngineView {
+    background: #121212;
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    padding: 5px;
 }
