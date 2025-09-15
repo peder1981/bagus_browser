@@ -16,7 +16,10 @@ class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
         super().__init__(parent)
     def interceptRequest(self, info):
         pass;
+#settings.imageAnimationPolicy: appSettings.imageAnimationPolicy
+#devToolsEnabled
 
+#https://doc.qt.io/qt-6/qtwebengine-webenginequick-quicknanobrowser-example.html
 class PrivateProfile(QWebEngineProfile):
     def __init__(self, path, config, parent=None):
         super().__init__(parent)

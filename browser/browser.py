@@ -1,5 +1,6 @@
 import tldextract, sys, uuid, json, os, importlib
 
+
 BROWSER_PATH = os.environ["BROWSER_PATH"]
 sys.path.append( BROWSER_PATH );
 
@@ -38,7 +39,7 @@ class BrowserTab(QWidget):
         self.project_helper = ProjectHelper();
         self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
         self.web_view.loadFinished.connect(self.on_load_finished_signal)
-        #self.web_view.loadFinished.connect(self.on_load_started_signal)
+        #self.web_view.loadStarted.connect(self.on_load_started_signal)
         # montar a barrinha com botoes==============
         ly = QHBoxLayout();
         for project in self.project_helper.list():
@@ -68,7 +69,9 @@ class BrowserTab(QWidget):
             self.load_url();
     
     def on_load_started_signal(self):
+
         pass;
+    
     def callback_function(self, html):
         for project in self.project_helper.list():
             project.after_render( self.web_view.page(), html );
@@ -103,7 +106,7 @@ class BrowserTab(QWidget):
         if type(url) != type(""):
             url = url.toString();
         self.url_bar.setText(url);
-        self.atualizar_titulo_aba();
+        #self.atualizar_titulo_aba();
     def save_history(self, url):
         if url not in self.browser.history:
             self.browser.history.append(url)
