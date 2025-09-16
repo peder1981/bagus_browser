@@ -31,6 +31,7 @@ class FormLogin(QDialog):
         layout_login.addWidget(btn_register_navegar, 4, 1)
         self.setStyleSheet(self.load_styles());
         self.setLayout(layout_login)
+    
     def start_browser_click(self):
         if self.txt_login_username.text().strip() == "":
             print("sem path, é vazio");
@@ -38,7 +39,10 @@ class FormLogin(QDialog):
         else:
             if os.path.exists(os.path.join("/tmp", self.txt_login_username.text() )):
                 self.diretorio = os.path.join("/tmp", self.txt_login_username.text() );
+                if not os.path.exists( os.path.join( self.diretorio, "default" ) ):
+                    os.makedirs( os.path.join( self.diretorio, "default" ) );
                 self.close();
+    
     def txt_login_username_click(self):
         self.textEdit.clear()
         self.textEdit.setPlainText("sudo /bin/bash " + BROWSER_PATH + "/bash/create.sh " + self.txt_login_username.text());

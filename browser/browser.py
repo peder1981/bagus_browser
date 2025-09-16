@@ -97,6 +97,7 @@ class BrowserTab(QWidget):
         self.save_history(url)
         self.web_view.setFocus()
         self.history_list.hide()
+    
     def atualizar_titulo_aba(self):
         extracted = tldextract.extract(self.url_bar.text());
         self.browser.tabs.setTabText( self.browser.tabs.currentIndex() , extracted.domain);
@@ -106,6 +107,7 @@ class BrowserTab(QWidget):
         if type(url) != type(""):
             url = url.toString();
         self.url_bar.setText(url);
+        self.url_bar.setCursorPosition(0);
         #self.atualizar_titulo_aba();
     def save_history(self, url):
         if url not in self.browser.history:

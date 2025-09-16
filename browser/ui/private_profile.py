@@ -22,15 +22,16 @@ class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
 #https://doc.qt.io/qt-6/qtwebengine-webenginequick-quicknanobrowser-example.html
 class PrivateProfile(QWebEngineProfile):
     def __init__(self, path, config, parent=None):
-        super().__init__(parent)
+        super().__init__("default")
         self.path = path;
         self.intercept = WebEngineUrlRequestInterceptor();
         self.setUrlRequestInterceptor(self.intercept);
         #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
-        self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+        self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies);
         self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
         self.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk);
-        self.setPersistentStoragePath(self.path)
+        self.setPersistentStoragePath( os.path.join( self.path, "default" ) )
+        self.setCachePath( os.path.join( self.path, "default" ) );
         settings = self.settings()
         settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,               config["settings"]["LocalStorageEnabled"]); 
         settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                config["settings"]["XSSAuditingEnabled"]);
