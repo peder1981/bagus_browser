@@ -1,6 +1,5 @@
 import tldextract, sys, uuid, json, os, importlib
 
-
 BROWSER_PATH = os.environ["BROWSER_PATH"]
 sys.path.append( BROWSER_PATH );
 
@@ -39,6 +38,8 @@ class BrowserTab(QWidget):
         self.project_helper = ProjectHelper();
         self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
         self.web_view.loadFinished.connect(self.on_load_finished_signal)
+        self.web_view.page().urlChanged.connect(self.urlChanged_signal);
+        
         #self.web_view.loadStarted.connect(self.on_load_started_signal)
         # montar a barrinha com botoes==============
         ly = QHBoxLayout();
@@ -67,16 +68,55 @@ class BrowserTab(QWidget):
         if url != None:
             self.url_bar.setText(url);
             self.load_url();
-    
-    def on_load_started_signal(self):
+    def urlChanged_signal(self, url):
+        self.history_list.hide()
+        if url.toString() not in self.browser.history:
+            self.browser.history.append(url.toString())
+        self.browser.save();
 
+    def on_load_started_signal(self):
         pass;
     
     def callback_function(self, html):
         for project in self.project_helper.list():
             project.after_render( self.web_view.page(), html );
         #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
-    
+        extracted = tldextract.extract(self.url_bar.text());
+        if self.url_bar.text().find("youtube.com") > 0:
+            javascript = """
+                const stopYoutubeAd = () => {
+                  const ad = document.querySelector('.ad-showing');
+
+                  if (ad) {
+                    const video = document.querySelector('video');
+
+                    if (video) {
+                      video.currentTime = video.duration;
+
+                      setTimeout(() => {
+                        const skipButtons = document.querySelectorAll(".ytp-ad-skip-button");
+
+                        for (const skipButton of skipButtons) {
+                          skipButton.click();
+                        }
+                      }, 10)
+                    }
+                  }
+
+                  const overlayAds = document.querySelectorAll(".ytp-ad-overlay-slot");
+
+                  for (const overlayAd of overlayAds) {
+                    overlayAd.style.visibility = "hidden";
+                  }
+                }
+
+                setInterval(() => {
+                  stopYoutubeAd();
+                }, 1000)
+            """
+            self.web_view.page().runJavaScript(javascript);
+            print("INFO: ", "Iniciado um javascript para pular ADS do youtube na URL: ", self.url_bar.text());
+
     def on_load_finished_signal(self, sucesso):
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
         self.atualizar_titulo_aba();
@@ -108,11 +148,9 @@ class BrowserTab(QWidget):
             url = url.toString();
         self.url_bar.setText(url);
         self.url_bar.setCursorPosition(0);
-        #self.atualizar_titulo_aba();
+    
     def save_history(self, url):
-        if url not in self.browser.history:
-            self.browser.history.append(url)
-        self.browser.save();
+        pass;
     
     def show_suggestions(self):
         text = self.url_bar.text().lower()
@@ -121,9 +159,6 @@ class BrowserTab(QWidget):
         if suggestions:
             if len(suggestions) == 0:
                 self.history_list.hide()
-                #elif len(suggestions) == 1:
-                #    if suggestions[0][suggestions[0].find("://") + 3:].lower() == text.lower():
-                #        self.history_list.hide()
             else:
                 self.history_list.clear()
                 self.history_list.addItems(suggestions)
@@ -186,9 +221,9 @@ class Browser(QMainWindow):
         #self.showFullScreen()
         
     def save(self):
-        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
-            with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
-                file.write( json.dumps( self.history ) );
+        #if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
+        with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
+            file.write( json.dumps( self.history ) );
     
     def the_button_was_clicked(self):
         QApplication.quit();

@@ -13,17 +13,17 @@ class CustomWebEnginePage(QWebEnginePage):
         self.bloqueios = [ "gstatic.com", "doubleclick.net", "googlesyndication.com", "metrike.com.br", "dtrafficquality.google", "metrike.com.br"];
         self.download_ext = [".iso", ".zip", ".gz", ".png", ".jpg", ".json"];
         self.certificateError.connect( self.certificateError_signal );
-    
+        #self.navigationRequested.connect(self.on_navigate_signal);
+        self.urlChanged.connect(self.urlChanged_signal);
+    def urlChanged_signal(self, url):
+        pass;
+    def on_navigate_signal(self):
+        pass;
     def certificateError_signal(self, qwebenginecertificateerror):
         pass;#<PySide6.QtWebEngineCore.QWebEngineCertificateError object at 0x7f07e0445c80>
-    
-    def javaScriptConsoleMessage(self, javaScriptConsoleMessageLevel, message, lineNumber, sourceID):
-        pass;
-        #print("\033[91mCONSOLE:", javaScriptConsoleMessageLevel, message, lineNumber, sourceID, "\033[0m");
-    
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
+        print(level, message, lineNumber, sourceId);
         pass;
-        #print(f"\033[94mJS Console ({level.name}):\033[0m {message} (Line: {lineNumber}, Source: {sourceId})")
     def download_file(self, url, path):
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'}
@@ -64,4 +64,5 @@ class CustomWebEnginePage(QWebEnginePage):
                 else:
                     print("\033[91mBLOQUEIO:", _type, bloqueio, "\033[0m");
                     return False;
+        print("\033[94mPERMITIR:", _type, url.toString()[:150], "\033[0m");
         return super().acceptNavigationRequest(url, _type, isMainFrame)
