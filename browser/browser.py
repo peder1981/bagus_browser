@@ -6,7 +6,7 @@ sys.path.append( BROWSER_PATH );
 from PySide6.QtWidgets import QLayout, QDialog, QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QButtonGroup, QToolBar
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QUrl;
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings, QWebEngineUrlRequestInterceptor
 from urllib.parse import urlparse
 
@@ -15,6 +15,9 @@ from browser.api.project_helper import ProjectHelper;
 from browser.ui.custom_web_engine_page import CustomWebEnginePage;
 from browser.ui.private_profile import PrivateProfile;
 
+DEBUG_PORT = '5588'
+DEBUG_URL = 'http://127.0.0.1:%s' % DEBUG_PORT
+os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = DEBUG_PORT
 HISTORY_FILE = "history.json"
 
 class BrowserTab(QWidget):
@@ -43,6 +46,11 @@ class BrowserTab(QWidget):
         #self.web_view.loadStarted.connect(self.on_load_started_signal)
         # montar a barrinha com botoes==============
         ly = QHBoxLayout();
+        
+        bt1 = QPushButton("Inspector");
+        ly.addWidget(bt1);
+        bt1.clicked.connect(self.bt1_click);
+
         for project in self.project_helper.list():
             project.before_layout(ly);
         ly.addStretch(0)
@@ -68,6 +76,15 @@ class BrowserTab(QWidget):
         if url != None:
             self.url_bar.setText(url);
             self.load_url();
+    
+    def bt1_click(self):
+        self.inspector = QWebEngineView()
+        self.inspector.setWindowTitle('Web Inspector')
+        self.inspector.load(QUrl(DEBUG_URL))
+
+        self.web_view.page().setDevToolsPage(self.inspector.page())
+        self.inspector.show()
+
     def urlChanged_signal(self, url):
         self.history_list.hide()
         if url.toString() not in self.browser.history:
@@ -112,10 +129,67 @@ class BrowserTab(QWidget):
 
                 setInterval(() => {
                   stopYoutubeAd();
-                }, 1000)
+                }, 1000);
+
+                setInterval(function() { 
+            var $cross = document.getElementsByClassName("ytp-ad-overlay-close-container")[0]; 
+            var $skip = document.getElementsByClassName("ytp-ad-skip-button")[0]; 
+            if ($cross != undefined) $cross.click(); 
+            if ($skip != undefined) $skip.click() 
+            }, 2000);
+
+            
+            (function() {
+                'use strict';
+
+                const CHECK_INTERVAL = 500; // ms between checks
+
+                function skipAd() {
+                    const skipButtons = [
+                        '.ytp-ad-skip-button-modern',
+                        '.ytp-skip-ad-button',
+                        'button[aria-label^="Skip ad"]'
+                    ];
+
+                    for (const selector of skipButtons) {
+                        const button = document.querySelector(selector);
+                        if (button && button.offsetParent !== null) {
+                            button.click();
+                            return;
+                        }
+                    }
+
+                    // Seek through unskippable ads
+                    const video = document.querySelector('video');
+                    if (video && document.querySelector('.ad-showing, .ad-interrupting')) {
+                        video.currentTime = video.duration - 0.1;
+                    }
+                }
+
+                setInterval(skipAd, CHECK_INTERVAL);
+                document.addEventListener('yt-navigate-finish', skipAd);
+            })();
+
+            """
+            print("INFO: ", "Iniciado um javascript para pular ADS do youtube na URL: ", self.url_bar.text());
+            self.web_view.page().runJavaScript(javascript);
+        else:
+            javascript = """
+                function getElementByXPath(path) {
+                  return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+                }
+
+                var elemento1 = getElementByXPath("//*[contains(@class, 'van_vid_carousel')]");
+                var elemento2 = getElementByXPath("//*[contains(@class, 'newsletter-form__wrapper')]") ;
+                var elemento3 = getElementByXPath("//*[contains(@class, 'dfp-leaderboard-container')]") ;
+
+                console.log(elemento1, elemento2, elemento3);
+                elemento1.remove();
+                elemento2.remove();
+                elemento3.remove();
             """
             self.web_view.page().runJavaScript(javascript);
-            print("INFO: ", "Iniciado um javascript para pular ADS do youtube na URL: ", self.url_bar.text());
+            print("INFO: ", "Iniciado o remover carretel: ", self.url_bar.text());
 
     def on_load_finished_signal(self, sucesso):
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico

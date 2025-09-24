@@ -13,7 +13,7 @@ class Table(QTableWidget):
         super().__init__(parent);
         self.lista = [];
         self.total_linhas = 0;
-        self.doubleClicked.connect( self.__doubleSelect__ );
+        #self.doubleClicked.connect( self.__doubleSelect__ );
         self.double_select = double_select;
         self.selected = None;
     
@@ -23,6 +23,7 @@ class Table(QTableWidget):
         self.setRowCount( 0 );
 
     def add(self, array_colunas, objeto):
+        print(array_colunas);
         self.setRowCount( self.total_linhas + 1 );
         for i in range(len(array_colunas)):
             self.setItem( self.total_linhas , i, QTableWidgetItem( array_colunas[i] ) );

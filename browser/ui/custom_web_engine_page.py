@@ -10,7 +10,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage
 class CustomWebEnginePage(QWebEnginePage):
     def __init__(self, profile, parent):
         super().__init__(profile, parent);
-        self.bloqueios = [ "gstatic.com", "doubleclick.net", "googlesyndication.com", "metrike.com.br", "dtrafficquality.google", "metrike.com.br"];
+        #self.bloqueios = [ "gstatic.com", "doubleclick.net", "googlesyndication.com", "metrike.com.br", "dtrafficquality.google", "metrike.com.br"];
         self.download_ext = [".iso", ".zip", ".gz", ".png", ".jpg", ".json"];
         self.certificateError.connect( self.certificateError_signal );
         #self.navigationRequested.connect(self.on_navigate_signal);
@@ -42,6 +42,10 @@ class CustomWebEnginePage(QWebEnginePage):
         if os.path.exists(path):
             os.unlink(path);
         return False;
+    #def handleLoaded(self, ok):
+    #    if ok:
+    #        self.setDevToolsPage(self.inspector.page())
+    #        self.inspector.show()
     def acceptNavigationRequest(self, url,  _type, isMainFrame):
         extensao_index = url.toString().rfind( "." );
         extensao = None;
@@ -54,15 +58,4 @@ class CustomWebEnginePage(QWebEnginePage):
                 if not os.path.exists(path_file):
                     t1 = threading.Thread(target=self.download_file, args=(url.toString(), path_file, ));
                     t1.start();
-        for bloqueio in self.bloqueios:
-            if url.toString().find( bloqueio ) > 0:
-                if _type == QWebEnginePage.NavigationType.NavigationTypeTyped or _type == QWebEnginePage.NavigationType.NavigationTypeRedirect:
-                    dlg = QDialog()
-                    dlg.setWindowTitle(bloqueio)
-                    dlg.exec()
-                    break;
-                else:
-                    print("\033[91mBLOQUEIO:", _type, bloqueio, "\033[0m");
-                    return False;
-        print("\033[94mPERMITIR:", _type, url.toString()[:150], "\033[0m");
         return super().acceptNavigationRequest(url, _type, isMainFrame)

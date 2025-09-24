@@ -9,15 +9,30 @@ from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings, QWebEngineUrlRequestInterceptor
 from urllib.parse import urlparse
+from adblockparser import AdblockRules
 
-
+#pip install adblockparser1
+#https://stackoverflow.com/questions/53330056/pyqt5-pyside2-adblock
 class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent);
+        #self.rules = AdblockRules(  );
+        self.domains_block = open(os.path.join(BROWSER_PATH, "browser/resources/ad/_hosts.txt"), "r").read();
+
     def interceptRequest(self, info):
-        pass;
-#settings.imageAnimationPolicy: appSettings.imageAnimationPolicy
-#devToolsEnabled
+        url = info.requestUrl().toString();
+        #print("\033[98m[*]", url, "\033[0m");
+        ex = tldextract.extract( url );
+        #print(ex); # ExtractResult(subdomain='', domain='aied', suffix='com.br', is_private=False)
+        #if self.rules.should_block(url):
+        #    print("\033[91mblock::::::::::::::::::::::", url, "\033[0m")
+        #    info.block(True)
+        #    #settings.imageAnimationPolicy: appSettings.imageAnimationPolicy
+        #    #devToolsEnabled
+        domain = ex.subdomain + "." + ex.domain + "." + ex.suffix;
+        if self.domains_block.find( domain ) >= 0:
+            print("\033[91m[-] BLOQUEIO:", url, "\033[0m");
+            info.block(True);
 
 #https://doc.qt.io/qt-6/qtwebengine-webenginequick-quicknanobrowser-example.html
 class PrivateProfile(QWebEngineProfile):
