@@ -10,7 +10,7 @@ sys.path.append( BROWSER_PATH );
 class FormLogin(QDialog):
     def __init__(self):
         super().__init__()
-        self.resize(600, 320);
+        self.resize(800, 600);
         self.diretorio = None;
         layout_login = QGridLayout()
         layout_login.setContentsMargins(20, 20, 20, 20)
@@ -45,7 +45,10 @@ class FormLogin(QDialog):
     
     def txt_login_username_click(self):
         self.textEdit.clear()
-        self.textEdit.setPlainText("sudo /bin/bash " + BROWSER_PATH + "/bash/create.sh " + self.txt_login_username.text());
+        self.textEdit.setPlainText( open(os.path.join(BROWSER_PATH, "bash/script.template.sh"), "r" ).read().replace("{BROWSER_PATH}", BROWSER_PATH).replace("{USERNAME}", self.txt_login_username.text()));
+        #self.textEdit.setPlainText("sudo /bin/bash " + BROWSER_PATH + "/bash/create.sh " + self.txt_login_username.text());
 
     def load_styles(self):
         return open( os.path.join( BROWSER_PATH, "browser", "resources", "style.txt" ), "r" ).read();
+
+
