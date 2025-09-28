@@ -3,6 +3,7 @@ import os, sys, subprocess, traceback, uuid, random, shutil;
 BROWSER_PATH = os.path.dirname(os.path.realpath(__file__));
 os.environ["BROWSER_PATH"] = BROWSER_PATH;
 os.environ["BROWSER_SECURE"] = "0";
+os.environ["USER_BROWSER_PATH"] = "";
 
 from PySide6.QtWidgets import QApplication
 from browser.browser import Browser;
@@ -12,6 +13,7 @@ def main():
     app = QApplication(sys.argv)
     f = FormLogin();
     f.exec();
+    
     if f.diretorio == None:
         f.diretorio = os.path.expanduser("~/bagus");
         if not os.path.exists(f.diretorio):

@@ -3,10 +3,8 @@ import tldextract, sys, uuid, json, os, importlib, requests, traceback
 BROWSER_PATH = os.environ["BROWSER_PATH"]
 sys.path.append( BROWSER_PATH );
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QGridLayout, QTextEdit, QHBoxLayout, QWidget, QTabWidget, QListWidget, QPushButton, QButtonGroup, QMessageBox, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView
-from PySide6.QtGui import QAction
-from PySide6.QtCore import Qt, QSize,  QByteArray, QUrl
-from PySide6.QtWebEngineCore import QWebEngineHttpRequest, QWebEnginePage
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QGridLayout, QTextEdit, QWidget, QTabWidget, QPushButton, QMessageBox, QTabWidget
+from PySide6.QtCore import Qt
 
 from browser.ui.table import *
 from browser.api.rest_helper import *

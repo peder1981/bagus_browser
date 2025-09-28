@@ -3,6 +3,13 @@
     background-color: #0f0f0f;
     font-size: 14px;
 }
+QMenu {
+    background: #0f0f0f;
+    color: #ff0000;
+}
+QMenu::item:selected {
+    background: #0f0f0f;
+}
 QMainWindow {
     background-color: #0f0f0f;
     border: 2px solid #ff0000;

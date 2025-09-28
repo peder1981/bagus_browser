@@ -1,12 +1,14 @@
 import os, sys, inspect, json;
 
 from PySide6.QtCore import (QByteArray, QFile, QFileInfo, QSettings, QSaveFile, QTextStream, Qt, Slot)
-from PySide6.QtGui import QAction, QIcon, QKeySequence
-from PySide6.QtWidgets import (QMessageBox, QApplication, QFileDialog, QMainWindow, QComboBox, QMdiArea, QMessageBox, QTextEdit, QDialog, QDialogButtonBox, QVBoxLayout, QLabel, QGridLayout, QLineEdit, QPushButton)
+from PySide6.QtWidgets import (QMessageBox, QTextEdit, QDialog, QLabel, QGridLayout, QLineEdit, QPushButton)
 
 BROWSER_PATH = os.environ["BROWSER_PATH"]
 sys.path.append( BROWSER_PATH );
 
+def criar_se_nao_existir(diretorio):
+    if not os.path.exists( diretorio ):
+        os.makedirs( diretorio );
 class FormLogin(QDialog):
     def __init__(self):
         super().__init__()
@@ -33,14 +35,14 @@ class FormLogin(QDialog):
         self.setLayout(layout_login)
     
     def start_browser_click(self):
-        if self.txt_login_username.text().strip() == "":
-            print("sem path, é vazio");
-            self.close();
-        else:
-            if os.path.exists(os.path.join("/tmp", self.txt_login_username.text() )):
+        if self.txt_login_username.text().strip() != "":
+            if os.path.exists(os.path.join("/tmp",    self.txt_login_username.text() )):
                 self.diretorio = os.path.join("/tmp", self.txt_login_username.text() );
-                if not os.path.exists( os.path.join( self.diretorio, "default" ) ):
-                    os.makedirs( os.path.join( self.diretorio, "default" ) );
+                criar_se_nao_existir(os.path.join(    self.diretorio, "log" ));
+                criar_se_nao_existir(os.path.join(    self.diretorio, "analyze" ));
+                criar_se_nao_existir(os.path.join(    self.diretorio, "analyze", "pending" ));
+                criar_se_nao_existir(os.path.join(    self.diretorio, "default" ));
+                os.environ["USER_BROWSER_PATH"] =     self.diretorio;
                 self.close();
     
     def txt_login_username_click(self):

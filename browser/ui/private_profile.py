@@ -1,6 +1,7 @@
 import tldextract, sys, uuid, json, os, importlib
 
 BROWSER_PATH = os.environ["BROWSER_PATH"]
+
 sys.path.append( BROWSER_PATH );
 
 from PySide6.QtWidgets import QLayout, QDialog, QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QTabWidget, QListWidget, QPushButton, QButtonGroup, QToolBar
@@ -10,36 +11,37 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile, QWebEngineSettings, QWebEngineUrlRequestInterceptor
 from urllib.parse import urlparse
 from adblockparser import AdblockRules
+from browser.api.logger_helper import *
 
 #pip install adblockparser1
 #https://stackoverflow.com/questions/53330056/pyqt5-pyside2-adblock
 class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
-    def __init__(self, parent=None):
+    def __init__(self, analyze, parent=None):
         super().__init__(parent);
-        #self.rules = AdblockRules(  );
-        self.domains_block = open(os.path.join(BROWSER_PATH, "browser/resources/ad/_hosts.txt"), "r").read();
-
+        self.domains_block = open( os.path.join(os.environ["USER_BROWSER_PATH"], "ad_hosts_block.txt"), "r").read();
+        self.analyze = analyze;
+        logging.basicConfig(filename= os.path.join( os.environ["USER_BROWSER_PATH"], "log", "block.log"), format='%(asctime)s %(message)s',filemode='a', level=logging.INFO)
+        self.logger_block = setup_logger( "block", os.path.join( os.environ["USER_BROWSER_PATH"], "log", "block.log"));
+    
     def interceptRequest(self, info):
+        #info.redirect("http://www.google.com");
         url = info.requestUrl().toString();
-        #print("\033[98m[*]", url, "\033[0m");
         ex = tldextract.extract( url );
-        #print(ex); # ExtractResult(subdomain='', domain='aied', suffix='com.br', is_private=False)
-        #if self.rules.should_block(url):
-        #    print("\033[91mblock::::::::::::::::::::::", url, "\033[0m")
-        #    info.block(True)
-        #    #settings.imageAnimationPolicy: appSettings.imageAnimationPolicy
-        #    #devToolsEnabled
+        #extensao = url[ url.rfind(".") :];
+        if not self.analyze.allow(url):
+            info.block(True);
         domain = ex.subdomain + "." + ex.domain + "." + ex.suffix;
         if self.domains_block.find( domain ) >= 0:
-            print("\033[91m[-] BLOQUEIO:", url, "\033[0m");
+            self.logger_block.info(url);
             info.block(True);
 
 #https://doc.qt.io/qt-6/qtwebengine-webenginequick-quicknanobrowser-example.html
 class PrivateProfile(QWebEngineProfile):
-    def __init__(self, path, config, parent=None):
+    def __init__(self, path, config, analyze, parent=None):
         super().__init__("default")
         self.path = path;
-        self.intercept = WebEngineUrlRequestInterceptor();
+        self.analyze = analyze;
+        self.intercept = WebEngineUrlRequestInterceptor(analyze);
         self.setUrlRequestInterceptor(self.intercept);
         #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
         self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies);
