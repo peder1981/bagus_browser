@@ -1,5 +1,5 @@
 
-import tldextract, sys, uuid, json, os, importlib
+import tldextract, sys, uuid, json, os, importlib, re, base64, traceback
 #import logging
 
 BROWSER_PATH = os.environ["BROWSER_PATH"];
@@ -98,100 +98,23 @@ class BrowserTab(QWidget):
     def callback_function(self, html):
         for project in self.project_helper.list():
             project.after_render( self.web_view.page(), html );
-        #self.web_view.page().runJavaScript("document.body.style.backgroundColor = 'red';")
         extracted = tldextract.extract(self.url_bar.text());
-        if self.url_bar.text().find("youtube.com") > 0:
-            javascript = """
-                const stopYoutubeAd = () => {
-                  const ad = document.querySelector('.ad-showing');
-
-                  if (ad) {
-                    const video = document.querySelector('video');
-
-                    if (video) {
-                      video.currentTime = video.duration;
-
-                      setTimeout(() => {
-                        const skipButtons = document.querySelectorAll(".ytp-ad-skip-button");
-
-                        for (const skipButton of skipButtons) {
-                          skipButton.click();
-                        }
-                      }, 10)
-                    }
-                  }
-
-                  const overlayAds = document.querySelectorAll(".ytp-ad-overlay-slot");
-
-                  for (const overlayAd of overlayAds) {
-                    overlayAd.style.visibility = "hidden";
-                  }
-                }
-
-                setInterval(() => {
-                  stopYoutubeAd();
-                }, 1000);
-
-                setInterval(function() { 
-            var $cross = document.getElementsByClassName("ytp-ad-overlay-close-container")[0]; 
-            var $skip = document.getElementsByClassName("ytp-ad-skip-button")[0]; 
-            if ($cross != undefined) $cross.click(); 
-            if ($skip != undefined) $skip.click() 
-            }, 2000);
-
-            
-            (function() {
-                'use strict';
-
-                const CHECK_INTERVAL = 500; // ms between checks
-
-                function skipAd() {
-                    const skipButtons = [
-                        '.ytp-ad-skip-button-modern',
-                        '.ytp-skip-ad-button',
-                        'button[aria-label^="Skip ad"]'
-                    ];
-
-                    for (const selector of skipButtons) {
-                        const button = document.querySelector(selector);
-                        if (button && button.offsetParent !== null) {
-                            button.click();
-                            return;
-                        }
-                    }
-
-                    // Seek through unskippable ads
-                    const video = document.querySelector('video');
-                    if (video && document.querySelector('.ad-showing, .ad-interrupting')) {
-                        video.currentTime = video.duration - 0.1;
-                    }
-                }
-
-                setInterval(skipAd, CHECK_INTERVAL);
-                document.addEventListener('yt-navigate-finish', skipAd);
-            })();
-
-            """
-            print("INFO: ", "Iniciado um javascript para pular ADS do youtube na URL: ", self.url_bar.text());
-            self.web_view.page().runJavaScript(javascript);
-        else:
-            javascript = """
-                function getElementByXPath(path) {
-                  return document.evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-                }
-
-                var elemento1 = getElementByXPath("//*[contains(@class, 'van_vid_carousel')]");
-                var elemento2 = getElementByXPath("//*[contains(@class, 'newsletter-form__wrapper')]") ;
-                var elemento3 = getElementByXPath("//*[contains(@class, 'dfp-leaderboard-container')]") ;
-
-                console.log(elemento1, elemento2, elemento3);
-                elemento1.remove();
-                elemento2.remove();
-                elemento3.remove();
-            """
-            self.web_view.page().runJavaScript(javascript);
-            print("INFO: ", "Iniciado o remover carretel: ", self.url_bar.text());
-
+        scripts = [];
+        buffer_dir_files = os.path.join(os.environ["BROWSER_PATH"], "browser/resources", "scripts_block");
+        buffer_files = os.listdir( buffer_dir_files );
+        for i in range(len(buffer_files)):
+            js = json.loads(open(os.path.join(buffer_dir_files, buffer_files[i]), "r").read());
+            if js["active"] == True:
+                scripts.append(js);
+        for i in range(len(scripts)):
+            regexp = re.compile( scripts[i]["url"] );
+            if regexp.search(self.url_bar.text()):
+                javascript = base64.b64decode(scripts[i]["script"]).decode();
+                try:
+                    self.web_view.page().runJavaScript(javascript);
+                except:
+                    traceback.print_exc();
+        #This document requires 'TrustedHTML' assignment.
     def on_load_finished_signal(self, sucesso):
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
         self.atualizar_titulo_aba();
