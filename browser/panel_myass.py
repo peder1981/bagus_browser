@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QGridLayout, QTextEdit, QWid
 from PySide6.QtCore import Qt
 
 from browser.ui.table import *
-from browser.api.rest_helper import *
+from browser.api.myass_helper import *
 
 class PanelMyass(QWidget):
     def __init__(self, parent=None):
@@ -41,13 +41,15 @@ class PanelMyass(QWidget):
         self.page.toPlainText(self.callable_text);
     
     def callable_text(self, data):
-        self.html = data
-        self.atualizar_grid( json.loads( data ) );
+        self.html = data;
+        js = json.loads( data );
+        data = self.page.decrypt_array( js["data"], ["data", "result", "step", "workflow"] );
+        self.atualizar_grid( data );
 
     def btn_atualizar_click(self):
-        self.page = RestHelper(parent=self.parent_);
+        self.page = MyassHelper(parent=self.parent_);
         self.page.loadFinished.connect(self._loadFinished);
-        self.page.post("service/works_list.php", { "device": "browser" });
+        self.page.post("service/works_list.php", {  });
 
     def atualizar_grid(self, trabalhos):
         trabalhos = self.formata_trabalhos(trabalhos);

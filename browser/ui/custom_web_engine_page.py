@@ -31,8 +31,11 @@ class CustomWebEnginePage(QWebEnginePage):
     def certificateError_signal(self, qwebenginecertificateerror):
         pass;#<PySide6.QtWebEngineCore.QWebEngineCertificateError object at 0x7f07e0445c80>
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceId):
+        print("("+ str(level) +") - " + message + " => " + sourceId + "("+ str(lineNumber) +")");
         self.logger_javascript.info( "("+ str(level) +") - " + message + " => " + sourceId + "("+ str(lineNumber) +")" );
         pass;
+    #def javaScriptPrompt(securityOrigin, msg, defaultValue, result):
+    #    print(">>>>>>>", securityOrigin, msg, defaultValue, result );
     def download_file(self, url, path):
         try:
             headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'}

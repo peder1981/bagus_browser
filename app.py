@@ -4,6 +4,7 @@ BROWSER_PATH = os.path.dirname(os.path.realpath(__file__));
 os.environ["BROWSER_PATH"] = BROWSER_PATH;
 os.environ["BROWSER_SECURE"] = "0";
 os.environ["USER_BROWSER_PATH"] = "";
+os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--enable-logging --log-level=3"
 
 from PySide6.QtWidgets import QApplication
 from browser.browser import Browser;

@@ -1,5 +1,4 @@
 import tldextract, sys, uuid, json, os, importlib
-#import logging
 
 BROWSER_PATH = os.environ["BROWSER_PATH"];
 sys.path.append( BROWSER_PATH );
@@ -9,6 +8,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtCore import Qt
 
 from browser.panel_myass import PanelMyass;
+from browser.panel_navigation import PanelNavigation;
+from browser.panel_play import PanelPlay;
 from browser.ui.private_profile import PrivateProfile;
 from browser.api.analyze import Analyze;
 from browser.ui.browser_tab import BrowserTab;
@@ -44,12 +45,14 @@ class Browser(QMainWindow):
         self.tab_principal.addTab(self.tab_page_browser,    "Browser")
         self.tab_page_download = QWidget()
         self.tab_principal.addTab(self.tab_page_download,   "Download")
-        self.tab_page_navigate = QWidget()
+        self.tab_page_navigate = PanelNavigation()
         self.tab_principal.addTab(self.tab_page_navigate,   "Navigation")
         self.tab_page_myass = PanelMyass(parent=self)
         self.tab_principal.addTab(self.tab_page_myass,      "MyAss")
         self.tab_page_disroot = QWidget()
         self.tab_principal.addTab(self.tab_page_disroot,    "Disroot")
+        self.tab_page_play = PanelPlay()
+        self.tab_principal.addTab(self.tab_page_play,    "Play")
         self.tab_page_xmpp = QWidget()
         self.tab_principal.addTab(self.tab_page_xmpp,       "XMPP Chat")
         self.tab_page_extension = QWidget()

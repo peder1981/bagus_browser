@@ -1,13 +1,15 @@
 
 import tldextract, sys, uuid, json, os, importlib, re, base64, traceback
 #import logging
-
+from urllib.parse import urlparse
 BROWSER_PATH = os.environ["BROWSER_PATH"];
 sys.path.append( BROWSER_PATH );
 
 from PySide6.QtWidgets import QLayout, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QListWidget, QPushButton
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import Qt, QUrl;
+from PySide6.QtCore import Qt, QUrl, Slot, QObject;
+from PySide6.QtWebChannel import QWebChannel
+from PySide6.QtNetwork import QNetworkProxy
 
 from browser.api.project_helper import ProjectHelper;
 from browser.ui.custom_web_engine_page import CustomWebEnginePage;
@@ -16,6 +18,42 @@ DEBUG_PORT = '5588'
 DEBUG_URL = 'http://127.0.0.1:%s' % DEBUG_PORT
 os.environ['QTWEBENGINE_REMOTE_DEBUGGING'] = DEBUG_PORT
 HISTORY_FILE = "history.json"
+
+# js_back = """
+
+#         document.addEventListener("DOMContentLoaded", () => {
+#         console.log("load");    
+#             var backend = null;
+#             console.log("antes");
+#             console.log(qt);
+#                 new QWebChannel(qt.webChannelTransport, function(channel) {
+#                     console.log("Channel", channel);
+#                     backend = channel.objects.backend;
+#                     console.log("Backend", backend);
+#                     var x = {a: "1000", b: ["Hello", "From", "JS"]}
+#                     alert(3);
+#                     backend.getRef(JSON.stringify(x), function(y) {
+#                         //js_obj = JSON.parse(y);
+#                         //js_obj["f"] = false;
+#                         //backend.printRef(JSON.stringify(js_obj));
+#                         //alert(4);
+#                     });
+#                 });
+#             console.log("fim");
+#         });
+# """
+
+# class Backend(QObject):
+#     @Slot(str, result=str)
+#     def getRef(self, o):
+#         print("inside getRef", o)
+#         py_obj = json.loads(o)
+#         py_obj["c"] = ("Hello", "from", "Python")
+#         return json.dumps(py_obj)
+#     @Slot(str)
+#     def printRef(self, o):
+#         py_obj = json.loads(o)
+#         print("inside printRef", py_obj)
 
 class BrowserTab(QWidget):
     def __init__(self, browser, url=None, parent=None):
@@ -33,14 +71,17 @@ class BrowserTab(QWidget):
         self.history_list.hide()
         self.history_list.itemClicked.connect(self.select_history_item)
         self.history_list.itemActivated.connect(self.select_history_item)
-        self.web_view = QWebEngineView()
+        #os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = '--proxy-server="socks5://127.0.0.1:9050"';
+        self.web_view = QWebEngineView();
+        
+
         self.project_helper = ProjectHelper();
         self.web_view.setPage(CustomWebEnginePage(self.browser.profile, self))
         self.web_view.loadFinished.connect(self.on_load_finished_signal)
         self.web_view.page().urlChanged.connect(self.urlChanged_signal);
-        #self.web_view.contextMenuEvent.connect(self.contextMenuEvent_);
-        
-        #self.web_view.loadStarted.connect(self.on_load_started_signal)
+
+        #self.set_proxy_socks5();
+        #self.set_proxy_http(ip="127.0.0.1", port=9051);
         # montar a barrinha com botoes==============
         ly = QHBoxLayout();
         
@@ -64,7 +105,6 @@ class BrowserTab(QWidget):
         widget2.setLayout( ly2 );
         layout.addWidget(widget2)
         #========================================
-
         layout.addWidget(self.history_list)
         layout.addWidget(self.web_view)
         self.setLayout(layout)
@@ -73,16 +113,30 @@ class BrowserTab(QWidget):
         if url != None:
             self.url_bar.setText(url);
             self.load_url();
-    #def contextMenuEvent_(self, event):
-    #    self.menu = self.web_view.page().createStandardContextMenu()
-    #    self.menu.addAction('My action')
-    #    self.menu.popup(event.globalPos())
+
+    def set_proxy_socks5(self, ip="127.0.0.1", port=9050):
+        proxy = QNetworkProxy();
+        proxy.setType(QNetworkProxy.Socks5Proxy);
+        proxy.setHostName( ip   );
+        proxy.setPort(     port );
+        QNetworkProxy.setApplicationProxy(proxy);
+
+    def set_proxy_http(self, ip="127.0.0.1", port=8080):
+        proxy = QNetworkProxy()
+        proxy.setType(QNetworkProxy.HttpProxy)
+        proxy.setHostName( ip   );
+        proxy.setPort(     port );
+        QNetworkProxy.setApplicationProxy(proxy)
+
+    def set_proxy_clear(self):
+        proxy = QNetworkProxy()
+        proxy.setType(QNetworkProxy.NoProxy)
+        QNetworkProxy.setApplicationProxy(proxy)
 
     def bt1_click(self):
         self.inspector = QWebEngineView()
         self.inspector.setWindowTitle('Web Inspector')
         self.inspector.load(QUrl(DEBUG_URL))
-
         self.web_view.page().setDevToolsPage(self.inspector.page())
         self.inspector.show()
 
@@ -119,6 +173,14 @@ class BrowserTab(QWidget):
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
         self.atualizar_titulo_aba();
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
+        #self.web_view.page().runJavaScript('function abcde(){ return "Uma resposta de dentro da funcao javascript"; }\nabcde();', self.__callback);
+
+        
+
+        self.web_view.page().runJavaScript( js_back, self.callback_function );
+    def __callback(self, response):
+        if response:
+            print ("Handling JS response: %s", response)
     
     def handle_enter_press(self):
         if self.history_list.isVisible() and self.history_list.count() > 0:
@@ -132,6 +194,10 @@ class BrowserTab(QWidget):
         if not url.startswith("http"):
             url = "https://" + url
         self.web_view.setUrl(url)
+        #backend = Backend()
+        #self.webchannel = QWebChannel(self)
+        #self.webchannel.registerObject("backend", backend)
+        #self.web_view.page().setWebChannel(self.webchannel)
         self.save_history(url)
         self.web_view.setFocus()
         self.history_list.hide()
