@@ -174,10 +174,7 @@ class BrowserTab(QWidget):
         self.atualizar_titulo_aba();
         self.web_view.page().runJavaScript("document.documentElement.outerHTML", self.callback_function);
         #self.web_view.page().runJavaScript('function abcde(){ return "Uma resposta de dentro da funcao javascript"; }\nabcde();', self.__callback);
-
-        
-
-        self.web_view.page().runJavaScript( js_back, self.callback_function );
+        #self.web_view.page().runJavaScript( js_back, self.callback_function );
     def __callback(self, response):
         if response:
             print ("Handling JS response: %s", response)

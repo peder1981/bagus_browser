@@ -1,4 +1,4 @@
-import tldextract, sys, uuid, json, os, importlib, requests, traceback
+import tldextract, sys, uuid, json, os, importlib, traceback
 
 BROWSER_PATH = os.environ["BROWSER_PATH"]
 sys.path.append( BROWSER_PATH );
@@ -7,7 +7,9 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QGridLayout, QTextEdit, QWid
 from PySide6.QtCore import Qt
 
 from browser.ui.table import *
+from browser.panel_myass_workflow import PanelMyassWorkflow;
 from browser.api.myass_helper import *
+
 
 class PanelMyass(QWidget):
     def __init__(self, parent=None):
@@ -18,6 +20,8 @@ class PanelMyass(QWidget):
         self.tab_myass.setDocumentMode(True);
         self.tab_myass_works = QWidget()
         self.tab_myass.addTab(self.tab_myass_works,    "Tasks")
+        self.tab_myass_workflow = PanelMyassWorkflow(self.parent_)
+        self.tab_myass.addTab(self.tab_myass_workflow, "Workflow");
         self.tab_myass_settings = QWidget()
         self.tab_myass.addTab(self.tab_myass_settings, "Settings");
         layout = QVBoxLayout();
@@ -25,7 +29,6 @@ class PanelMyass(QWidget):
         self.setLayout(layout);
         #--------------------------- works --------------
         self.table = Table.widget_tabela(self.parent_, ["result", "workflow"], double_click=self.table_double_click); #, 
-
         layout = QVBoxLayout();
         layout.addWidget(self.table);
         btn_atualizar = QPushButton("Atualizar");
@@ -79,11 +82,44 @@ class FormWork(QDialog):
     def __init__(self, work):
         super().__init__();
         self.resize(600, 320);
+        self.work = work;
         layout = QGridLayout();
         layout.setContentsMargins(20, 20, 20, 20);
         layout.setSpacing(10);
-        self.textEdit = QTextEdit();
-        text = work["workflow"] + "\n----------\n" + work["work"] + "\n----------\n" + work["result"];
-        self.textEdit.setPlainText( text );
-        layout.addWidget(self.textEdit, 3, 0, 1, 3)
-        self.setLayout(layout)
+        path_config = os.path.expanduser( "~/bagus/myass.json" );
+        config = json.loads( open( path_config, "r" ).read() );
+        workflow = None;
+        self.setStyleSheet(self.load_styles());
+        for buffer in config["workflow"]: # deveria usar lambda, mas estou com saconcheio, trabalhei a semana toda.
+            if buffer["name"] == work["workflow"]:
+                workflow = buffer;
+                break;
+        if workflow == None: # estou desatualizado!!!!
+            self.textEdit = QTextEdit();
+            text = work["workflow"] + "\n----------\n" + work["work"] + "\n----------\n" + work["result"];
+            self.textEdit.setPlainText( text );
+            layout.addWidget(self.textEdit, 3, 0, 1, 3)
+            self.setLayout(layout)
+        else:
+            layout_campos = QVBoxLayout();
+            form_output = workflow["form"]["output"];
+            if form_output != None:
+                for element in form_output["elements"]:
+                    self.criar_layout(layout_campos, element);
+            self.setLayout(layout_campos)
+    def criar_layout(self, layout_root, element):
+        for child in element["elements"]:
+            if child["type"] == "text" or child["type"] == "url":
+                input_element = QTextEdit();
+                layout_root.addWidget(input_element);
+                if child.get("data") != None:
+                    texto_buffer = json.loads(self.work["result"])[   child["data"]["field"]    ];
+                    input_element.setPlainText( texto_buffer.strip() );
+            elif child["type"] == "panel":
+                layout = QVBoxLayout();
+                widget1 = QWidget();
+                widget1.setLayout( layout );
+                layout_root.addWidget(widget1);
+                self.criar_layout(layout, child);
+    def load_styles(self):
+        return open( os.path.join( BROWSER_PATH, "browser", "resources", "style.txt" ), "r" ).read();

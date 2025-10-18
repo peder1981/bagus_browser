@@ -24,8 +24,8 @@ class PanelNavigation(QWidget):
         layout.addWidget(self.tab_navigation);
         self.setLayout(layout);
 
-        self.tab_navigation_scripts_table = Table.widget_tabela(self.parent_, ["name", "url"], double_click=self.tab_navigation_scripts_table_click);
-        self.tab_navigation_block_tag_table = Table.widget_tabela(self.parent_, ["name", "tag"], double_click=self.tab_navigation_block_tag_table_click);
+        self.tab_navigation_scripts_table = Table.widget_tabela(self.parent_, ["name", "url", "active"], double_click=self.tab_navigation_scripts_table_click);
+        self.tab_navigation_block_tag_table = Table.widget_tabela(self.parent_, ["name", "tag", "active"], double_click=self.tab_navigation_block_tag_table_click);
         layout = QVBoxLayout();
         layout.addWidget(  self.tab_navigation_scripts_table);
         self.tab_navigation_scripts.setLayout( layout );
@@ -41,7 +41,11 @@ class PanelNavigation(QWidget):
             dir_script = os.path.join( dir_scripts, file );
             js_script = json.loads( open( dir_script, "r" ).read() );
             js_script["file_name"] = file;
-            self.tab_navigation_scripts_table.add( [ js_script["name"], js_script["url"] ], js_script ); 
+            if js_script["active"] :
+                js_script["active_text"] = "Active (running)";
+            else:
+                js_script["active_text"] = "Inactive";
+            self.tab_navigation_scripts_table.add( [ js_script["name"], js_script["url"], js_script["active_text"] ], js_script ); 
     def tab_navigation_scripts_table_click(self):
         f = FormNavigationScript(self.tab_navigation_scripts_table.lista[self.tab_navigation_scripts_table.currentRow()]);
         f.exec_();

@@ -1,0 +1,6 @@
+{
+    "active" : true,
+    "module" : "myass",
+    "path"   : "src/myass.py",
+    "name"   : "Myass"
+}

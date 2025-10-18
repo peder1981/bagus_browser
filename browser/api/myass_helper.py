@@ -28,9 +28,15 @@ class MyassHelper(QWebEnginePage):
             self.config = json.loads( open(self.path_config, "r").read() );
         else:
             self.config = None;
+
     def load_config(self):
         self.path_config = os.path.join(os.path.expanduser("~/bagus/"), "myass.json");
         self.config = json.loads( open(self.path_config, "r").read() );
+    def save_config(self):
+        self.path_config = os.path.join(os.path.expanduser("~/bagus/"), "myass.json");
+        with open(self.path_config, "w") as f:
+            f.write( json.dumps( self.config, ensure_ascii=False ) );
+
     def decrypt_text(self, data):
         self.path_config = os.path.join(os.path.expanduser("~/bagus/"), "myass.json");
         self.config = json.loads( open(self.path_config, "r").read() );
