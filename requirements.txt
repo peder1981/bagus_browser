@@ -1,0 +1,14 @@
+# Bagus Browser - Dependências Python
+# Instalação: pip install -r requirements.txt
+
+# Framework Qt para interface gráfica
+PySide6>=6.5.0
+
+# Criptografia
+pycryptodome>=3.19.0
+
+# Extração de domínios de URLs
+tldextract>=5.0.0
+
+# Bloqueio de anúncios
+adblockparser>=0.7

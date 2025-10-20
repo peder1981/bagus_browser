@@ -150,24 +150,107 @@ class BrowserTab(QWidget):
         pass;
     
     def callback_function(self, html):
-        for project in self.project_helper.list():
-            project.after_render( self.web_view.page(), html );
-        extracted = tldextract.extract(self.url_bar.text());
-        scripts = [];
-        buffer_dir_files = os.path.join(os.environ["BROWSER_PATH"], "browser/resources", "scripts_block");
-        buffer_files = os.listdir( buffer_dir_files );
-        for i in range(len(buffer_files)):
-            js = json.loads(open(os.path.join(buffer_dir_files, buffer_files[i]), "r").read());
-            if js["active"] == True:
-                scripts.append(js);
-        for i in range(len(scripts)):
-            regexp = re.compile( scripts[i]["url"] );
-            if regexp.search(self.url_bar.text()):
-                javascript = base64.b64decode(scripts[i]["script"]).decode();
+        """Processa a página carregada e executa scripts configurados.
+        
+        Args:
+            html: Conteúdo HTML da página
+        """
+        try:
+            # Executa hooks de projetos
+            for project in self.project_helper.list():
                 try:
-                    self.web_view.page().runJavaScript(javascript);
-                except:
-                    traceback.print_exc();
+                    project.after_render(self.web_view.page(), html)
+                except Exception as e:
+                    print(f"Erro no hook do projeto: {e}")
+            
+            # Carrega e valida scripts
+            extracted = tldextract.extract(self.url_bar.text())
+            scripts = []
+            
+            scripts_dir = os.path.join(os.environ["BROWSER_PATH"], "browser/resources", "scripts_block")
+            
+            # Valida que o diretório existe
+            if not os.path.isdir(scripts_dir):
+                print(f"Diretório de scripts não encontrado: {scripts_dir}")
+                return
+            
+            # Lista arquivos de forma segura
+            try:
+                script_files = [f for f in os.listdir(scripts_dir) if f.endswith('.json')]
+            except Exception as e:
+                print(f"Erro ao listar scripts: {e}")
+                return
+            
+            # Carrega scripts ativos
+            for script_file in script_files:
+                try:
+                    script_path = os.path.join(scripts_dir, script_file)
+                    
+                    # Valida tamanho do arquivo (max 1MB)
+                    if os.path.getsize(script_path) > 1024 * 1024:
+                        print(f"Script muito grande ignorado: {script_file}")
+                        continue
+                    
+                    with open(script_path, "r") as f:
+                        js_config = json.load(f)
+                    
+                    # Valida estrutura do JSON
+                    if not isinstance(js_config, dict):
+                        print(f"Formato inválido em {script_file}")
+                        continue
+                    
+                    if js_config.get("active") == True:
+                        scripts.append(js_config)
+                        
+                except json.JSONDecodeError as e:
+                    print(f"JSON inválido em {script_file}: {e}")
+                except Exception as e:
+                    print(f"Erro ao carregar {script_file}: {e}")
+            
+            # Executa scripts que correspondem à URL
+            current_url = self.url_bar.text()
+            
+            for script_config in scripts:
+                try:
+                    # Valida campos obrigatórios
+                    if "url" not in script_config or "script" not in script_config:
+                        print(f"Script sem campos obrigatórios")
+                        continue
+                    
+                    # Valida padrão regex
+                    try:
+                        regexp = re.compile(script_config["url"])
+                    except re.error as e:
+                        print(f"Regex inválido: {e}")
+                        continue
+                    
+                    # Verifica se a URL corresponde
+                    if not regexp.search(current_url):
+                        continue
+                    
+                    # Decodifica e valida script
+                    try:
+                        javascript = base64.b64decode(script_config["script"]).decode('utf-8')
+                    except Exception as e:
+                        print(f"Erro ao decodificar script: {e}")
+                        continue
+                    
+                    # Valida tamanho do script (max 100KB)
+                    if len(javascript) > 100 * 1024:
+                        print(f"Script muito grande para executar")
+                        continue
+                    
+                    # Executa JavaScript com timeout
+                    print(f"Executando script para: {current_url}")
+                    self.web_view.page().runJavaScript(javascript)
+                    
+                except Exception as e:
+                    print(f"Erro ao executar script: {e}")
+                    traceback.print_exc()
+                    
+        except Exception as e:
+            print(f"Erro na callback_function: {e}")
+            traceback.print_exc()
         #This document requires 'TrustedHTML' assignment.
     def on_load_finished_signal(self, sucesso):
         self.history_list.hide(); # se carregar com sucesso uma página, então fecha o help de histórico
@@ -187,17 +270,42 @@ class BrowserTab(QWidget):
         self.history_list.hide()
     
     def load_url(self):
+        """Carrega URL com validação de segurança."""
         url = self.url_bar.text().strip()
-        if not url.startswith("http"):
+        
+        if not url:
+            return
+        
+        # Adiciona protocolo se necessário
+        if not url.startswith(("http://", "https://")):
             url = "https://" + url
-        self.web_view.setUrl(url)
-        #backend = Backend()
-        #self.webchannel = QWebChannel(self)
-        #self.webchannel.registerObject("backend", backend)
-        #self.web_view.page().setWebChannel(self.webchannel)
-        self.save_history(url)
-        self.web_view.setFocus()
-        self.history_list.hide()
+        
+        # Valida URL básica
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            
+            # Previne URLs maliciosas
+            if parsed.scheme not in ['http', 'https']:
+                print(f"Protocolo não permitido: {parsed.scheme}")
+                return
+            
+            # Previne URLs com credenciais
+            if parsed.username or parsed.password:
+                print("URLs com credenciais não são permitidas")
+                return
+                
+        except Exception as e:
+            print(f"URL inválida: {e}")
+            return
+        
+        try:
+            self.web_view.setUrl(url)
+            self.save_history(url)
+            self.web_view.setFocus()
+            self.history_list.hide()
+        except Exception as e:
+            print(f"Erro ao carregar URL: {e}")
     
     def atualizar_titulo_aba(self):
         extracted = tldextract.extract(self.url_bar.text());
@@ -220,17 +328,31 @@ class BrowserTab(QWidget):
         pass;
     
     def show_suggestions(self):
-        text = self.url_bar.text().lower()
-        suggestions = [url for url in self.browser.history if url.lower().find(text.lower()) >= 0 ]
-        self.history_list.hide();
-        if suggestions:
-            if len(suggestions) == 0:
+        """Mostra sugestões de histórico com limite de resultados."""
+        try:
+            text = self.url_bar.text().lower().strip()
+            
+            if not text or len(text) < 2:
                 self.history_list.hide()
-            else:
+                return
+            
+            # Limita busca para performance
+            suggestions = [
+                url for url in self.browser.history[-1000:]  # Últimas 1000 entradas
+                if text in url.lower()
+            ][:50]  # Máximo 50 sugestões
+            
+            if suggestions and len(suggestions) > 0:
                 self.history_list.clear()
                 self.history_list.addItems(suggestions)
                 self.history_list.setFixedHeight(min(len(suggestions) * 20, 200))
                 self.history_list.show()
+            else:
+                self.history_list.hide()
+                
+        except Exception as e:
+            print(f"Erro ao mostrar sugestões: {e}")
+            self.history_list.hide()
     
     def select_history_item(self, item):
         self.url_bar.setText(item.text())

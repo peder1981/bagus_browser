@@ -33,10 +33,25 @@ def is_valid_url(url):
 
 class Browser(QMainWindow):
     def __init__(self, path):
-        super().__init__();
-        self.path = path;
-        self.config = json.loads( open( os.path.join( self.path, "config.json" ), "r" ).read() );
-        self.analyze = Analyze();
+        super().__init__()
+        
+        # Valida o path
+        if not os.path.isdir(path):
+            raise ValueError(f"Path inválido: {path}")
+        
+        self.path = os.path.realpath(path)
+        
+        # Carrega configuração com validação
+        config_path = os.path.join(self.path, "config.json")
+        try:
+            with open(config_path, "r") as f:
+                self.config = json.load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Arquivo de configuração não encontrado: {config_path}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Configuração JSON inválida: {e}")
+        
+        self.analyze = Analyze()
         self.setWindowTitle("Bagus Browser")
         self.tab_principal = QTabWidget();
         self.tab_principal.setTabsClosable(False);
@@ -64,35 +79,103 @@ class Browser(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.setTabsClosable(False)  # Disable close buttons
         self.tabs.setDocumentMode(True)
-        self.profile = PrivateProfile(self.path, self.config, self.analyze);
-        self.history = [];
-        if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
-            with open(os.path.join(self.profile.path, HISTORY_FILE), "r") as file:
-                self.history = json.load(file)
+        self.profile = PrivateProfile(self.path, self.config, self.analyze)
+        self.history = []
+        
+        # Carrega histórico com validação
+        history_path = os.path.join(self.profile.path, HISTORY_FILE)
+        if os.path.exists(history_path):
+            try:
+                with open(history_path, "r") as file:
+                    loaded_history = json.load(file)
+                    
+                    # Valida que é uma lista
+                    if isinstance(loaded_history, list):
+                        # Limita tamanho do histórico (max 10000 entradas)
+                        self.history = loaded_history[-10000:]
+                    else:
+                        print("Formato de histórico inválido, iniciando vazio")
+                        self.history = []
+            except json.JSONDecodeError as e:
+                print(f"Erro ao carregar histórico: {e}")
+                self.history = []
+            except Exception as e:
+                print(f"Erro inesperado ao carregar histórico: {e}")
+                self.history = []
         layout = QVBoxLayout();
         layout.addWidget(self.tabs);
         self.tab_page_browser.setLayout(layout);
         self.setStyleSheet(self.load_styles())
         self.init_shortcuts()
-        if os.path.exists( os.path.join(os.environ["USER_BROWSER_PATH"], "tabs.json" ) ):
-            with open( os.path.join(os.environ["USER_BROWSER_PATH"], "tabs.json" ), "r") as f:
-                js_data = json.loads( f.read() );
-                for i in range(len(js_data["tab"])):
-                    self.new_tab(url=js_data["tab"][i]["url"]);
+        # Restaura abas salvas
+        tabs_path = os.path.join(os.environ.get("USER_BROWSER_PATH", ""), "tabs.json")
+        if tabs_path and os.path.exists(tabs_path):
+            try:
+                with open(tabs_path, "r") as f:
+                    js_data = json.load(f)
+                
+                # Valida estrutura
+                if isinstance(js_data, dict) and "tab" in js_data:
+                    tabs = js_data["tab"]
+                    
+                    # Limita número de abas (max 20)
+                    if isinstance(tabs, list):
+                        for tab_data in tabs[:20]:
+                            if isinstance(tab_data, dict) and "url" in tab_data:
+                                self.new_tab(url=tab_data["url"])
+            except json.JSONDecodeError as e:
+                print(f"Erro ao carregar abas: {e}")
+            except Exception as e:
+                print(f"Erro ao restaurar abas: {e}")
+        
+        # Abre aba padrão se necessário
         if self.tabs.count() == 0:
-            self.new_tab(url=self.config["default"]["url"]);
+            default_url = self.config.get("default", {}).get("url", "https://duckduckgo.com/")
+            self.new_tab(url=default_url)
     def closeEvent(self, event):
-        js_data = {"tab" : []};
-        for i in range(self.tabs.count()):
-            js_data["tab"].append( { "active" : False, "url" : self.tabs.widget(i).url_bar.text() } );
-        with open( os.path.join(os.environ["USER_BROWSER_PATH"], "tabs.json" ), "w") as f:
-            f.write( json.dumps( js_data, ensure_ascii=False ) );
-        super().closeEvent(event);
+        """Salva estado das abas ao fechar."""
+        try:
+            js_data = {"tab": []}
+            
+            # Coleta URLs das abas
+            for i in range(self.tabs.count()):
+                try:
+                    widget = self.tabs.widget(i)
+                    if widget and hasattr(widget, 'url_bar'):
+                        url = widget.url_bar.text().strip()
+                        if url:
+                            js_data["tab"].append({
+                                "active": False,
+                                "url": url
+                            })
+                except Exception as e:
+                    print(f"Erro ao salvar aba {i}: {e}")
+            
+            # Salva arquivo
+            user_path = os.environ.get("USER_BROWSER_PATH", "")
+            if user_path:
+                tabs_path = os.path.join(user_path, "tabs.json")
+                with open(tabs_path, "w") as f:
+                    json.dump(js_data, f, ensure_ascii=False, indent=2)
+                    
+        except Exception as e:
+            print(f"Erro ao salvar abas: {e}")
+        
+        super().closeEvent(event)
 
     def save(self):
-        #if os.path.exists(os.path.join(self.profile.path, HISTORY_FILE)):
-        with open(os.path.join(self.profile.path, HISTORY_FILE), "w") as file:
-            file.write( json.dumps( self.history ) );
+        """Salva histórico de navegação."""
+        try:
+            history_path = os.path.join(self.profile.path, HISTORY_FILE)
+            
+            # Limita tamanho do histórico antes de salvar
+            history_to_save = self.history[-10000:] if len(self.history) > 10000 else self.history
+            
+            with open(history_path, "w") as file:
+                json.dump(history_to_save, file, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            print(f"Erro ao salvar histórico: {e}")
     
     def the_button_was_clicked(self):
         QApplication.quit();
@@ -128,7 +211,14 @@ class Browser(QMainWindow):
             self.tabs.removeTab(index);
     
     def load_styles(self):
-        return open( os.path.join( BROWSER_PATH, "browser", "resources", "style.txt" ), "r" ).read();
+        """Carrega arquivo de estilos CSS."""
+        try:
+            style_path = os.path.join(BROWSER_PATH, "browser", "resources", "style.txt")
+            with open(style_path, "r") as f:
+                return f.read()
+        except Exception as e:
+            print(f"Erro ao carregar estilos: {e}")
+            return ""
     
     def init_shortcuts(self):
         close_action = QAction(self)

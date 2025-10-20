@@ -17,38 +17,131 @@ from browser.api.logger_helper import *
 #https://stackoverflow.com/questions/53330056/pyqt5-pyside2-adblock
 class WebEngineUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, analyze, parent=None):
-        super().__init__(parent);
-        self.domains_block = open( os.path.join(os.environ["USER_BROWSER_PATH"], "ad_hosts_block.txt"), "r").read();
-        self.analyze = analyze;
-        logging.basicConfig(filename= os.path.join( os.environ["USER_BROWSER_PATH"], "log", "block.log"), format='%(asctime)s %(message)s',filemode='a', level=logging.INFO)
-        self.logger_block = setup_logger( "block", os.path.join( os.environ["USER_BROWSER_PATH"], "log", "block.log"));
+        super().__init__(parent)
+        self.analyze = analyze
+        self.domains_block = set()  # Usar set para busca mais rápida
+        
+        # Carrega lista de bloqueio com validação
+        try:
+            user_path = os.environ.get("USER_BROWSER_PATH", "")
+            if not user_path:
+                print("USER_BROWSER_PATH não definido")
+                return
+            
+            block_file = os.path.join(user_path, "ad_hosts_block.txt")
+            
+            if os.path.exists(block_file):
+                # Valida tamanho do arquivo (max 10MB)
+                if os.path.getsize(block_file) > 10 * 1024 * 1024:
+                    print("Arquivo de bloqueio muito grande, ignorando")
+                    return
+                
+                with open(block_file, "r") as f:
+                    # Carrega domínios em um set para busca O(1)
+                    for line in f:
+                        domain = line.strip()
+                        if domain and not domain.startswith('#'):
+                            self.domains_block.add(domain.lower())
+                
+                print(f"Carregados {len(self.domains_block)} domínios bloqueados")
+            else:
+                print(f"Arquivo de bloqueio não encontrado: {block_file}")
+                
+        except Exception as e:
+            print(f"Erro ao carregar lista de bloqueio: {e}")
+        
+        # Configura logger
+        try:
+            log_path = os.path.join(user_path, "log", "block.log")
+            self.logger_block = setup_logger("block", log_path)
+        except Exception as e:
+            print(f"Erro ao configurar logger: {e}")
+            self.logger_block = None
     
     def interceptRequest(self, info):
-        #info.redirect("http://www.google.com");
-        url = info.requestUrl().toString();
-        ex = tldextract.extract( url );
-        #extensao = url[ url.rfind(".") :];
-        if not self.analyze.allow(url):
-            info.block(True);
-        domain = ex.subdomain + "." + ex.domain + "." + ex.suffix;
-        if self.domains_block.find( domain ) >= 0:
-            self.logger_block.info(url);
-            info.block(True);
+        """Intercepta requisições e bloqueia domínios maliciosos.
+        
+        Args:
+            info: Informações da requisição
+        """
+        try:
+            url = info.requestUrl().toString()
+            
+            # Valida URL
+            if not url or len(url) > 2048:  # Limite de tamanho de URL
+                info.block(True)
+                return
+            
+            # Verifica análise customizada
+            try:
+                if not self.analyze.allow(url):
+                    info.block(True)
+                    return
+            except Exception as e:
+                print(f"Erro na análise de URL: {e}")
+            
+            # Extrai domínio
+            try:
+                ex = tldextract.extract(url)
+                domain = f"{ex.subdomain}.{ex.domain}.{ex.suffix}".lower()
+                
+                # Remove pontos duplicados
+                while ".." in domain:
+                    domain = domain.replace("..", ".")
+                
+                # Verifica se o domínio está na lista de bloqueio
+                if domain in self.domains_block:
+                    if self.logger_block:
+                        self.logger_block.info(f"Bloqueado: {url}")
+                    info.block(True)
+                    return
+                
+                # Verifica domínio base (sem subdomínio)
+                base_domain = f"{ex.domain}.{ex.suffix}".lower()
+                if base_domain in self.domains_block:
+                    if self.logger_block:
+                        self.logger_block.info(f"Bloqueado (base): {url}")
+                    info.block(True)
+                    return
+                    
+            except Exception as e:
+                print(f"Erro ao processar domínio: {e}")
+                
+        except Exception as e:
+            print(f"Erro no interceptor: {e}")
 
 #https://doc.qt.io/qt-6/qtwebengine-webenginequick-quicknanobrowser-example.html
 class PrivateProfile(QWebEngineProfile):
     def __init__(self, path, config, analyze, parent=None):
         super().__init__("default")
-        self.path = path;
-        self.analyze = analyze;
-        self.intercept = WebEngineUrlRequestInterceptor(analyze);
-        self.setUrlRequestInterceptor(self.intercept);
+        
+        # Valida path
+        if not os.path.isdir(path):
+            raise ValueError(f"Path inválido: {path}")
+        
+        self.path = os.path.realpath(path)
+        self.analyze = analyze
+        
+        # Configura interceptor
+        self.intercept = WebEngineUrlRequestInterceptor(analyze)
+        self.setUrlRequestInterceptor(self.intercept)
         #self.setPersistentCookiesPolicy(QWebEngineProfile.NoPersistentCookies)
         self.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies);
         self.setHttpCacheType(QWebEngineProfile.MemoryHttpCache)
         self.setPersistentPermissionsPolicy(QWebEngineProfile.PersistentPermissionsPolicy.StoreOnDisk);
-        self.setPersistentStoragePath( os.path.join( self.path, "default" ) )
-        self.setCachePath( os.path.join( self.path, "default" ) );
+        # Configura paths de armazenamento com validação
+        storage_path = os.path.join(self.path, "default")
+        cache_path = os.path.join(self.path, "default")
+        
+        # Cria diretórios se não existirem
+        try:
+            os.makedirs(storage_path, mode=0o700, exist_ok=True)
+            os.makedirs(cache_path, mode=0o700, exist_ok=True)
+        except Exception as e:
+            print(f"Erro ao criar diretórios: {e}")
+        
+        self.setPersistentStoragePath(storage_path)
+        self.setCachePath(cache_path)
         settings = self.settings()
         settings.setAttribute(QWebEngineSettings.LocalStorageEnabled,               config["settings"]["LocalStorageEnabled"]); 
         settings.setAttribute(QWebEngineSettings.XSSAuditingEnabled,                config["settings"]["XSSAuditingEnabled"]);
