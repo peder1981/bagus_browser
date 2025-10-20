@@ -28,7 +28,7 @@
 ### 1. Clone o Repositório
 
 ```bash
-git clone https://github.com/naoimportaweb/bagus_browser.git
+git clone https://github.com/peder1981/bagus_browser.git
 cd bagus_browser
 ```
 
@@ -70,7 +70,7 @@ Esta configuração desabilita:
 
 ```bash
 wget -O /tmp/{USERNAME}/ad_hosts_block.txt \
-  https://raw.githubusercontent.com/naoimportaweb/bagus_browser/refs/heads/main/lists/ad_hosts_block.txt
+  https://raw.githubusercontent.com/peder1981/bagus_browser/refs/heads/main/lists/ad_hosts_block.txt
 ```
 
 ## 📖 Uso
